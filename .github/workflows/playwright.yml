@@ -19,12 +19,6 @@ jobs:
 
       - run: npm ci
 
-      - name: Type check
-        run: npm run typecheck
-
-      - name: Install browsers
-        run: npx playwright install --with-deps chromium
-
       - name: Write test credentials
         env:
           PRIMARY_EMAIL: ${{ secrets.PRIMARY_USER_EMAIL }}
@@ -39,6 +33,12 @@ jobs:
             secondaryUser: { email: e.SECONDARY_EMAIL, password: e.SECONDARY_PASSWORD }
           }));
           "
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Install browsers
+        run: npx playwright install --with-deps chromium
 
       - name: Run tests
         run: npx playwright test

@@ -1,20 +1,22 @@
 import { defineConfig, devices } from '@playwright/test';
 import { env } from './config/env';
-import type { Role } from './auth/users';
+import { USER_ROLES } from './auth/users';
 
 /**
  * Projects:
  *  - ui:  browser tests; the auth fixture logs in lazily and caches the session (fixtures/auth.fixture.ts)
  *  - api: REST API tests; no browser, the API client logs its role in once (fixtures/apiOnly.fixture.ts)
  */
-export default defineConfig<{ role: Role }>({
+export default defineConfig({
   testDir: './tests',
   timeout: env.timeouts.test,
   expect: { timeout: env.timeouts.expect },
-  // Shared public environment with shared seat counts: run one test at a time.
+  // Each worker runs as its own account (worker 0 = primaryUser, worker 1 = secondaryUser, ...), so
+  // workers never share bookings. More workers than accounts would share one, so the default is one
+  // worker per account. Override with WORKERS=1 for a fully serial run. Tests inside a file stay in order.
   fullyParallel: false,
-  workers: 1,
-  retries: env.isCI ? 1 : 0,
+  workers: Number(process.env.WORKERS ?? USER_ROLES.length),
+  retries: 1,
   forbidOnly: env.isCI,
   reporter: [['list'], ['html', { open: 'never' }]],
 
@@ -31,9 +33,7 @@ export default defineConfig<{ role: Role }>({
   },
 
   projects: [
-    // Each project has its own account, so `npm run test:ui` and `npm run test:api` can run at the same time
-    // (two terminals) without touching each other's bookings.
-    { name: 'ui', testDir: './tests/ui', use: { role: 'primaryUser' } },
-    { name: 'api', testDir: './tests/api', use: { role: 'secondaryUser' } },
+    { name: 'ui', testDir: './tests/ui' },
+    { name: 'api', testDir: './tests/api' },
   ],
 });

@@ -1,5 +1,5 @@
 import { test as base, expect } from '@playwright/test';
-import { Role } from '../auth/users';
+import { Role, roleForWorker } from '../auth/users';
 import { EventHubApi } from '../api/EventHubApi';
 import { newApiContext } from '../api/apiSession';
 import {
@@ -18,7 +18,7 @@ import {
  * the test, so the shared environment stays clean without any afterEach in the specs.
  */
 export interface ApiOnlyFixtures {
-  /** Who the test runs as. Default 'primaryUser'; change with test.use({ role: '...' }). */
+  /** Who the test runs as. Default: the account of the worker; change with test.use({ role: '...' }). */
   role: Role;
   /** EventHub API client authorised as `role`. */
   api: EventHubApi;
@@ -29,7 +29,7 @@ export interface ApiOnlyFixtures {
 }
 
 export const test = base.extend<ApiOnlyFixtures>({
-  role: ['primaryUser', { option: true }],
+  role: [async ({}, use, testInfo) => use(roleForWorker(testInfo.parallelIndex)), { option: true }],
 
   api: async ({ role }, use) => {
     if (role === 'anonymous') throw new Error('The "api" fixture needs a logged-in role, not "anonymous".');

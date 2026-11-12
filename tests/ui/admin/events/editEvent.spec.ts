@@ -47,9 +47,12 @@ test.describe('Edit an event', { tag: ['@ui', '@admin'] }, () => {
     });
 
     await test.step('My Bookings: the booking shows the edited event', async () => {
-      await myBookingsPage.open();
       const card = myBookingsPage.bookingCard(ref);
-      await expect(card.root).toBeVisible();
+      // The list can render before the server returns the bookings under load: re-open the page until the card shows.
+      await expect(async () => {
+        await myBookingsPage.open();
+        await expect(card.root).toBeVisible({ timeout: 5_000 });
+      }).toPass({ timeout: 30_000 });
       await expect(card.eventTitle).toHaveText(edited.title);
       await expect(card.root).toContainText(edited.city);
       expect(await card.ticketsValue()).toBe(QUANTITY);

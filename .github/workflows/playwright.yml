@@ -19,21 +19,6 @@ jobs:
 
       - run: npm ci
 
-      - name: Write test credentials
-        env:
-          PRIMARY_EMAIL: ${{ secrets.PRIMARY_USER_EMAIL }}
-          PRIMARY_PASSWORD: ${{ secrets.PRIMARY_USER_PASSWORD }}
-          SECONDARY_EMAIL: ${{ secrets.SECONDARY_USER_EMAIL }}
-          SECONDARY_PASSWORD: ${{ secrets.SECONDARY_USER_PASSWORD }}
-        run: |
-          node -e "
-          const e = process.env;
-          require('fs').writeFileSync('data/testcredentials.json', JSON.stringify({
-            primaryUser: { email: e.PRIMARY_EMAIL, password: e.PRIMARY_PASSWORD },
-            secondaryUser: { email: e.SECONDARY_EMAIL, password: e.SECONDARY_PASSWORD }
-          }));
-          "
-
       - name: Type check
         run: npm run typecheck
 

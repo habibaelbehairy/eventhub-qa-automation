@@ -5,7 +5,7 @@
 | Story        | US-114 AC3 (view my bookings) and AC4 (cancel a booking)              |
 | Page         | Booking details `/bookings/{id}`, opened with "View Details" on My Bookings |
 | Automated in | `tests/ui/booking/verifyBookingDetails.spec.ts` (TC-BD-01..07), `tests/ui/cancellation/cancelFromBookingDetails.spec.ts` (TC-BD-08..10) |
-| Test data    | Books tickets on an existing featured concert. If the booking is still listed after a test, `afterEach` cancels it through the UI (no API). |
+| Test data    | Books tickets on an existing featured concert. The `bookings` cleanup fixture deletes any booking left after a test through the API. |
 
 ## Verify the booking details
 

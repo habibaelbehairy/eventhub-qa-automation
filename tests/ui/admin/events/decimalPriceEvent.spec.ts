@@ -3,12 +3,12 @@ import { buildEvent, buildCustomer } from '../../../../utils/testData';
 import { openEventByTitle } from '../../../../common_steps/openEventByTitle';
 
 /**
- * An event with a decimal price (49.99). Observed: the event is created and can be booked, but
- * the UI shows the price rounded to whole dollars ($50) and the total as $150.
+ * An event with a decimal price (12.35). Observed: the event is created and can be booked, but
+ * the UI shows the price rounded to whole dollars ($12) and the total as $36.
  */
 test.describe('Event with a decimal price', { tag: ['@ui', '@admin', '@booking'] }, () => {
 
-  const PRICE = 49.99;
+  const PRICE = 12.35;
   const QUANTITY = 3;
 
   test('is created, shown on the Events page and can be booked', async ({
@@ -39,7 +39,7 @@ test.describe('Event with a decimal price', { tag: ['@ui', '@admin', '@booking']
     });
   });
 
-  // Known bug: the UI rounds 49.99 to $50 and the total 149.97 to $150, so this test fails until it is fixed.
+  // Known bug: the UI rounds 12.35 to whole dollars and the total 37.05 likewise, so this test fails until it is fixed.
   test('the UI shows the exact price and total', async ({
     adminEventsPage,
     eventsPage,
@@ -53,7 +53,7 @@ test.describe('Event with a decimal price', { tag: ['@ui', '@admin', '@booking']
 
     await openEventByTitle(eventsPage, detailsPage, event.title);
     await detailsPage.setQuantity(QUANTITY);
-    await expect(detailsPage.pricePerTicket).toContainText('49.99');
-    await expect(detailsPage.total).toContainText('149.97');
+    await expect(detailsPage.pricePerTicket).toContainText('12.35');
+    await expect(detailsPage.total).toContainText('37.05');
   });
 });

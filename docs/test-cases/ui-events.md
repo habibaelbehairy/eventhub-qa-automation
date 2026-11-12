@@ -4,13 +4,13 @@
 | ------------ | --------------------------------------------------------------------- |
 | Story        | US-114 — Book tickets for an event (second entry point to the booking) |
 | Page         | https://eventhub.rahulshettyacademy.com/events                        |
-| Automated in | `tests/ui/events/filterEvents.spec.ts`, `tests/ui/booking/bookFromEventsPage.spec.ts` |
-| Test data    | Read-only for filters (nothing created). Booking tests book 1 ticket on a demo event and delete it afterwards. |
+| Automated in | Filters and search: manual only (no automated spec). Booking from the Events page: `tests/ui/booking/bookFromEventsPage.spec.ts` |
+| Test data    | Read-only for filters (nothing created). Booking tests book 1 ticket on a demo event; the cleanup fixture deletes the booking through the API afterwards. |
 
 Assertions do not depend on which events exist: every shown card must match the filter, or the
 "No events found" empty state (with "Clear filters") must be shown.
 
-## Filters and search — `filterEvents.spec.ts`
+## Filters and search (manual only, not automated)
 
 | ID        | Test case                                   | Steps                                          | Expected |
 | --------- | ------------------------------------------- | ---------------------------------------------- | -------- |

@@ -5,11 +5,11 @@
 | Story        | US-114 AC4 — I can cancel a booking                                   |
 | Pages        | Home → Event details → My Bookings (`/bookings`) |
 | Automated in | `tests/ui/cancellation/cancelFeaturedEventBooking.spec.ts`, `tests/ui/cancellation/cancelFromBookingDetails.spec.ts`, `tests/ui/cancellation/clearAllBookings.spec.ts` |
-| Test data    | Bookings are made on existing events and cancelled in the test. If a test stops early, `afterEach` cancels what is left through the UI (no API). |
+| Test data    | Bookings are made on existing events and cancelled in the test. If a test stops early, the `bookings` cleanup fixture deletes what is left through the API. |
 
 Cancelling from the Booking Details page is in [ui-booking-details.md](ui-booking-details.md).
 
-Each spec file opens one browser and logs in once (`beforeAll`), then closes it in `afterAll`.
+Each spec file reuses one browser window and one login (the auth fixture); the window is closed after the file.
 Seat checks compare the Home card before booking with the Home card after cancelling. Another user
 on the shared environment can change the count at the same moment, and the failure message says so.
 

@@ -8,7 +8,6 @@ import { buildCustomer } from '../../../utils/testData';
  * Events page -> filter by category -> card -> Book Now -> book 1 ticket.
  * The detailed card/details/form checks live in bookFeaturedEventTicket.spec.ts (Home entry point);
  * here we only check that the filtered card leads to the same event and that booking works.
- * Filter behaviour itself is tested in tests/ui/events/filterEvents.spec.ts.
  */
 const CATEGORIES_WITH_EVENTS = ['Concert', 'Conference', 'Festival'] as const;
 

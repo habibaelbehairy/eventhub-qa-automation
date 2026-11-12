@@ -14,6 +14,11 @@ export type Role = UserRole | 'anonymous';
 
 export const USER_ROLES = Object.keys(credentials) as UserRole[];
 
+/** The account a worker runs as by default: one account per worker, so workers never share data. */
+export function roleForWorker(parallelIndex: number): UserRole {
+  return USER_ROLES[parallelIndex % USER_ROLES.length];
+}
+
 export function getUser(role: UserRole): { email: string; password: string } {
   return credentials[role];
 }

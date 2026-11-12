@@ -1,10 +1,10 @@
 import { test as base, expect, type BrowserContext, type Page } from '@playwright/test';
-import { Role, UserRole, getUser, isSessionFresh, storageStatePath } from '../auth/users';
+import { Role, UserRole, getUser, isSessionFresh, roleForWorker, storageStatePath } from '../auth/users';
 import { LoginPage } from '../page_objects/LoginPage';
 
 export interface AuthFixtures {
   /**
-   * Who the test runs as. Default: 'primaryUser'.
+   * Who the test runs as. Default: the account of the worker (worker 0 = 'primaryUser', worker 1 = 'secondaryUser').
    * Change it for a file or a describe block with test.use({ role: 'secondaryUser' }),
    * or test.use({ role: 'anonymous' }) for a visitor who is not logged in.
    */
@@ -36,7 +36,7 @@ interface FileSession {
 }
 
 export const authTest = base.extend<AuthFixtures, { fileSession: FileSession }>({
-  role: ['primaryUser', { option: true }],
+  role: [async ({}, use, testInfo) => use(roleForWorker(testInfo.parallelIndex)), { option: true }],
 
   // One browser window per spec file (and role): tests in the same file reuse it.
   fileSession: [

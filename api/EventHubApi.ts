@@ -14,6 +14,8 @@ export interface ApiEvent {
   id: number;
   title: string;
   eventDate: string;
+  /** Exact price as stored by the backend, e.g. "49.99" (the UI shows it rounded). */
+  price: string;
   isStatic: boolean;
   userId: number | null;
 }
@@ -22,6 +24,9 @@ export interface ApiBooking {
   id: number;
   bookingRef: string;
   eventId: number;
+  quantity: number;
+  /** Exact total as stored by the backend, e.g. "149.97". */
+  totalPrice: string;
 }
 
 export class EventHubApi {
@@ -44,6 +49,24 @@ export class EventHubApi {
     for (const booking of await this.listBookings(`eventId=${eventId}`)) await this.deleteBooking(booking.id);
     const response = await this.api.delete(`events/${eventId}`);
     expect([200, 404], `DELETE events/${eventId}`).toContain(response.status());
+  }
+
+  /** Events created by this account (the site's demo events are never included). */
+  async listOwnEvents(): Promise<ApiEvent[]> {
+    const userId = await this.currentUserId();
+    return (await this.listEvents()).filter((e) => !e.isStatic && e.userId === userId);
+  }
+
+  /** Deletes this account's events with exactly this title. An event that is already gone is skipped. */
+  async deleteOwnEventsByTitle(title: string): Promise<void> {
+    for (const event of (await this.listOwnEvents()).filter((e) => e.title === title)) await this.deleteEvent(event.id);
+  }
+
+  /** Deletes every event created by this account. Returns how many were deleted. */
+  async deleteOwnEvents(): Promise<number> {
+    const events = await this.listOwnEvents();
+    for (const event of events) await this.deleteEvent(event.id);
+    return events.length;
   }
 
   // ---- bookings ------------------------------------------------------------
@@ -75,19 +98,18 @@ export class EventHubApi {
 
   /** Removes ALL bookings and ALL events created by this account (never the site's demo events). */
   async cleanupAccount(): Promise<{ bookings: number; events: number }> {
-    const userId = await this.currentUserId();
     const bookings = await this.listBookings();
     for (const booking of bookings) await this.deleteBooking(booking.id);
-    const events = (await this.listEvents()).filter((e) => !e.isStatic && e.userId === userId);
-    for (const event of events) await this.deleteEvent(event.id);
-    return { bookings: bookings.length, events: events.length };
+    return { bookings: bookings.length, events: await this.deleteOwnEvents() };
   }
 
+  /** GET auth/me answers { user: { userId, email, ... } }. */
   async currentUserId(): Promise<number> {
     const response = await this.api.get('auth/me');
     expect(response.status(), 'GET auth/me').toBe(200);
     const body = await response.json();
-    return (body.user ?? body.data ?? body).id;
+    const user = body.user ?? body.data ?? body;
+    return user.userId ?? user.id;
   }
 
   /** Reads every page of a paginated list endpoint (max page size is 100). */

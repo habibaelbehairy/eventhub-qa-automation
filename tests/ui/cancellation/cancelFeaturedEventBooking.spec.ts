@@ -1,4 +1,4 @@
-import { test, expect } from '../../../fixtures';
+import { test, expect, cleanUpTestData } from '../../../fixtures';
 import { openEventFromHome } from '../../../common_steps/openEventFromHome';
 import { bookTickets } from '../../../common_steps/bookTickets';
 import { expectSeatsOnHome } from '../../../common_steps/expectSeatsOnHome';
@@ -14,6 +14,8 @@ import { buildCustomer } from '../../../utils/testData';
 const FEATURED_CATEGORIES = ['Concert', 'Conference', 'Festival'] as const;
 
 test.describe('Cancel a booking for a featured event', { tag: ['@ui', '@cancellation'] }, () => {
+  test.afterAll(({ fileSession }) => cleanUpTestData(fileSession));
+
   for (const category of FEATURED_CATEGORIES) {
     test(`cancel a ${category.toLowerCase()} booking from My Bookings`, async ({
       page,

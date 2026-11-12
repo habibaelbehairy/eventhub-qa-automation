@@ -16,3 +16,21 @@ export function parseTime12h(text: string): { hours: number; minutes: number } {
   const hours = (Number(h) % 12) + (period.toLowerCase() === 'pm' ? 12 : 0);
   return { hours, minutes: Number(m) };
 }
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** Local date & time `daysAhead` days from now (at 12:00) in the format of the admin form: "YYYY-MM-DDTHH:mm". */
+export function futureDateTime(daysAhead = 120): string {
+  const date = new Date();
+  date.setDate(date.getDate() + daysAhead);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T12:00`;
+}
+
+/** Form date & time "2027-03-10T12:00" -> the date as shown in the Manage Events table: "10 Mar 2027". */
+export function tableDate(dateTime: string): string {
+  const match = dateTime.match(/^(\d{4})-(\d{2})-(\d{2})T/);
+  if (!match) throw new Error(`Unexpected date & time format: "${dateTime}"`);
+  const [, year, month, day] = match;
+  return `${Number(day)} ${MONTHS[Number(month) - 1]} ${year}`;
+}

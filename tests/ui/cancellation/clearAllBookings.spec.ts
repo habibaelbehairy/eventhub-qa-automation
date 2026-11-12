@@ -1,4 +1,4 @@
-import { test, expect } from '../../../fixtures';
+import { test, expect, cleanUpTestData } from '../../../fixtures';
 import { openEventFromHome, OpenedEvent } from '../../../common_steps/openEventFromHome';
 import { bookTickets } from '../../../common_steps/bookTickets';
 import { expectSeatsOnHome } from '../../../common_steps/expectSeatsOnHome';
@@ -14,6 +14,8 @@ const TICKETS_PER_EVENT = 2;
 const NUMBER_OF_EVENTS = 3;
 
 test.describe('Clear all bookings', { tag: ['@ui', '@cancellation'] }, () => {
+  test.afterAll(({ fileSession }) => cleanUpTestData(fileSession));
+
   test(`book ${TICKETS_PER_EVENT} tickets on ${NUMBER_OF_EVENTS} different events, then clear all bookings`, async ({
     page,
     homePage,

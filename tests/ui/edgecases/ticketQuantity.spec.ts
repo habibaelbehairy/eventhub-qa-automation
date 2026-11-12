@@ -1,4 +1,4 @@
-import { test, expect } from '../../../fixtures';
+import { test, expect, cleanUpTestData } from '../../../fixtures';
 import { openEventFromHome } from '../../../common_steps/openEventFromHome';
 
 /**
@@ -7,6 +7,8 @@ import { openEventFromHome } from '../../../common_steps/openEventFromHome';
  * No booking is made: Confirm Booking is never clicked, so no seats are taken on the shared events.
  */
 test.describe('Ticket quantity edge cases', { tag: ['@ui', '@edge'] }, () => {
+  test.afterAll(({ fileSession }) => cleanUpTestData(fileSession));
+
   test('quantity starts at 1, cannot go below 1 and stops at the 10-ticket maximum', async ({ page, eventDetailsPage: detailsPage }) => {
     const max = detailsPage.props.maxTicketsPerBooking;
     await openEventFromHome(page, { minSeats: max });

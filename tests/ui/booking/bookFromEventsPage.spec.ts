@@ -1,4 +1,4 @@
-import { test, expect } from '../../../fixtures';
+import { test, expect, cleanUpTestData } from '../../../fixtures';
 import { bookTickets } from '../../../common_steps/bookTickets';
 import { EventCard } from '../../../page_objects/components/EventCard';
 import { buildCustomer } from '../../../utils/testData';
@@ -13,6 +13,8 @@ import { buildCustomer } from '../../../utils/testData';
 const CATEGORIES_WITH_EVENTS = ['Concert', 'Conference', 'Festival'] as const;
 
 test.describe('Book a ticket from the Events page', { tag: ['@ui', '@booking'] }, () => {
+  test.afterAll(({ fileSession }) => cleanUpTestData(fileSession));
+
   for (const category of CATEGORIES_WITH_EVENTS) {
     test(`filter by ${category} and book 1 ticket`, async ({ page, eventsPage, eventDetailsPage: detailsPage, bookings }) => {
 

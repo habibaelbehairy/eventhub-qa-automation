@@ -70,6 +70,13 @@ export class MyBookingsPage extends BasePage {
     }
   }
 
+  /** Cleanup helper: clears every booking of the account, or does nothing when there are none. */
+  async clearAllBookingsIfAny(): Promise<void> {
+    await this.waitForLoaded();
+    await expect(this.clearAllBookingsButton.or(this.emptyStateHeading).first()).toBeVisible();
+    if (await this.clearAllBookingsButton.isVisible()) await this.clearAllBookings();
+  }
+
   /**
    * Clicks "Clear all bookings" and confirms it.
    * The confirmation style has not been observed yet, so both are handled:

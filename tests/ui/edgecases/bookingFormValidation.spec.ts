@@ -1,20 +1,27 @@
-import { test, expect } from '../../../fixtures';
+import { test, expect, cleanUpTestData } from '../../../fixtures';
 import { openEventFromHome } from '../../../common_steps/openEventFromHome';
 
 /**
  * Edge cases — booking form content and field validation (UI only).
- * Each test starts with a fresh logged-in browser context from the auth fixture and opens the
- * event page explicitly; the form is reset by clearing the fields instead of reloading the page.
- * No booking is ever created: each test fills only the field under test, the other required
- * fields stay empty, so Confirm Booking is always blocked by validation.
+ * The event page is opened once from Home; the fields are filled progressively, each test adding a
+ * valid value or checking one invalid value, without navigating back to Home or reloading.
+ * The invalid-input tests are blocked by validation and create no booking; the final test submits
+ * the now-complete, valid form and checks the booking is confirmed.
  */
 test.describe('Booking form content and validation', { tag: ['@ui', '@edge'] }, () => {
-  test.beforeEach(async ({ page, eventDetailsPage: detailsPage }) => {
+  test.afterAll(({ fileSession }) => cleanUpTestData(fileSession));
+
+  test.beforeAll(async ({ page, eventDetailsPage: detailsPage }) => {
     await openEventFromHome(page, { minSeats: 1 });
-    await detailsPage.clearFieldValue('name');
-    await detailsPage.clearFieldValue('email');
-    await detailsPage.clearFieldValue('phone');
+    await detailsPage.waitForLoaded();
   });
+
+  // Empty the form between tests (no navigation, no reload) so each test fills only its own field.
+  // test.beforeEach(async ({ eventDetailsPage: detailsPage }) => {
+  //   await detailsPage.clearFieldValue('name');
+  //   await detailsPage.clearFieldValue('email');
+  //   await detailsPage.clearFieldValue('phone');
+  // });
 
   // ------------------------------------------------------------------ Form content
   test('Verify form shows labels, placeholders, per-ticket price and the Confirm button', async ({ eventDetailsPage: detailsPage }) => {
@@ -118,10 +125,12 @@ test.describe('Booking form content and validation', { tag: ['@ui', '@edge'] }, 
     await detailsPage.clearFieldValue('phone');
   });
 
-  test('Verify phone is accepted in the placeholder format "+91 98765 43210"', async ({ eventDetailsPage: detailsPage }) => {
-    // The field's own example; if it is rejected, the form refuses its own placeholder.
+  test('Verify the form submits and the booking is confirmed once name, email and phone are all valid', async ({ eventDetailsPage: detailsPage, bookings }) => {
+    // The phone placeholder is the field's own example; with the name and email already valid from
+    // the earlier tests, the whole form is now valid and Confirm Booking should create a booking.
     await detailsPage.setFieldValue('phone', '+91 98765 43210');
-    await detailsPage.submitForm();
-    await detailsPage.assertNoInlineError('phone');
+    await detailsPage.confirmBooking();
+    await expect(detailsPage.confirmationHeading).toBeVisible();
+    bookings.track(await detailsPage.confirmationBookingRefText());
   });
 });

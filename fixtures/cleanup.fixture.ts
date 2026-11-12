@@ -17,6 +17,20 @@ export class BookingTracker {
   }
 }
 
+/** Collects the event titles a test creates so the events can be deleted after the test. */
+export class EventTracker {
+  private readonly titles = new Set<string>();
+
+  /** Remember an event title (titles of test events are unique, see buildEvent). */
+  track(title: string): void {
+    this.titles.add(title);
+  }
+
+  get tracked(): string[] {
+    return [...this.titles];
+  }
+}
+
 export interface CleanupFixtures {
   /**
    * Test-data cleanup handled by the framework. Track every booking the test creates; after the
@@ -24,6 +38,11 @@ export interface CleanupFixtures {
    * cancelled is simply skipped. The shared environment stays clean without any afterEach in specs.
    */
   bookings: BookingTracker;
+  /**
+   * Same for events created in the admin area. Deleting an event also deletes the bookings made
+   * on it. An event the test already deleted (or the site replaced) is simply skipped.
+   */
+  events: EventTracker;
 }
 
 export const cleanupTest = apiTest.extend<CleanupFixtures>({
@@ -37,6 +56,22 @@ export const cleanupTest = apiTest.extend<CleanupFixtures>({
       try {
         const api = new EventHubApi(context);
         for (const ref of tracker.tracked) await api.deleteBookingByRef(ref);
+      } finally {
+        await context.dispose();
+      }
+    });
+  },
+
+  events: async ({ role }, use) => {
+    const tracker = new EventTracker();
+    await use(tracker);
+
+    if (tracker.tracked.length === 0 || role === 'anonymous') return;
+    await base.step(`Cleanup: delete ${tracker.tracked.length} event(s) through the API`, async () => {
+      const context = await newApiContext(role);
+      try {
+        const api = new EventHubApi(context);
+        for (const title of tracker.tracked) await api.deleteOwnEventsByTitle(title);
       } finally {
         await context.dispose();
       }

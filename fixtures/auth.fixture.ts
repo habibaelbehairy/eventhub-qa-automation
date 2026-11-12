@@ -17,7 +17,7 @@ export interface AuthFixtures {
  *  - the window starts with the saved session of its role (.auth/<role>.json, valid for a limited
  *    time) or logs in once and saves it;
  *  - if a saved session is rejected by the site, the framework logs in again by itself;
- *  - before every test the window is reset: extra tabs are closed and the home page is opened.
+ *  - before every test extra tabs are closed; the page is not reloaded, tests navigate themselves.
  */
 async function logIn(context: BrowserContext, page: Page, role: UserRole): Promise<void> {
   const user = getUser(role);
@@ -43,7 +43,8 @@ export const authTest = base.extend<AuthFixtures, { fileSession: FileSession }>(
     async ({}, use) => {
       const session: FileSession = {};
       await use(session);
-      await session.context?.close();
+      // Closing must not fail the run (e.g. Playwright's trace file may already be gone).
+      await session.context?.close().catch(() => {});
     },
     { scope: 'worker' },
   ],
@@ -75,8 +76,9 @@ export const authTest = base.extend<AuthFixtures, { fileSession: FileSession }>(
       if (other !== page) await other.close();
     }
 
-    // Right after a fresh login the page is already logged in on the home screen: no reload needed.
-    if (!justLoggedIn) await page.goto('/');
+    // A new window is blank: open the home page once. After that the page is never reloaded between
+    // tests; each test navigates from wherever the previous one left the window.
+    if (!justLoggedIn && page.url() === 'about:blank') await page.goto('/');
 
     if (role !== 'anonymous') {
       const loginPage = new LoginPage(page);

@@ -1,4 +1,4 @@
-import { test, expect } from '../../../fixtures';
+import { test, expect, cleanUpTestData } from '../../../fixtures';
 import { openEventFromHome } from '../../../common_steps/openEventFromHome';
 import { bookTickets } from '../../../common_steps/bookTickets';
 import { expectSeatsOnHome } from '../../../common_steps/expectSeatsOnHome';
@@ -10,6 +10,8 @@ import { buildCustomer } from '../../../utils/testData';
  * The `bookings` fixture deletes the booking after the test if the UI cancellation did not happen.
  */
 test.describe('Cancel a booking from Booking Details', { tag: ['@ui', '@cancellation'] }, () => {
+  test.afterAll(({ fileSession }) => cleanUpTestData(fileSession));
+
   test('cancel a booking from the Booking Details page', async ({
     page,
     eventDetailsPage: detailsPage,

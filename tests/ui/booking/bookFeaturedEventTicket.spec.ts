@@ -1,4 +1,4 @@
-import { test, expect } from '../../../fixtures';
+import { test, expect, cleanUpTestData } from '../../../fixtures';
 import { bookTickets } from '../../../common_steps/bookTickets';
 import { EventCard } from '../../../page_objects/components/EventCard';
 import { buildCustomer } from '../../../utils/testData';
@@ -15,11 +15,14 @@ import { longDatePatternFromCardDate, parseTime12h } from '../../../utils/dates'
 const FEATURED_CATEGORIES = ['Festival', 'Concert', 'Conference'] as const;
 
 test.describe('Book a ticket for a featured event', { tag: ['@ui', '@booking'] }, () => {
+  test.afterAll(({ fileSession }) => cleanUpTestData(fileSession));
+
   for (const category of FEATURED_CATEGORIES) {
     test(`book 1 ticket for a featured ${category.toLowerCase()} from the home screen`, async ({
       page,
       homePage,
       eventDetailsPage: detailsPage,
+      myBookingsPage,
       api,
       bookings,
     }) => {
@@ -111,11 +114,21 @@ test.describe('Book a ticket for a featured event', { tag: ['@ui', '@booking'] }
       });
 
       // -------------------------------------------------------------- Book + confirmation
-      await bookTickets(detailsPage, {
+      const bookingRef = await bookTickets(detailsPage, {
         quantity,
         customer,
         expectedPrice: cardData.price,
         onBooked: (ref) => bookings.track(ref),
+      });
+
+      // -------------------------------------------------------------- My Bookings
+      await test.step('The booking shows on the My Bookings page', async () => {
+        await myBookingsPage.open();
+        const bookingCard = myBookingsPage.bookingCard(bookingRef);
+        await expect(bookingCard.root).toBeVisible();
+        await expect(bookingCard.eventTitle).toHaveText(cardData.title);
+        await expect(bookingCard.status).toHaveText('confirmed');
+        expect(await bookingCard.ticketsValue()).toBe(quantity);
       });
     });
   }

@@ -1,4 +1,4 @@
-import { test, expect } from '../../../fixtures';
+import { test, expect, cleanUpTestData } from '../../../fixtures';
 import { openEventFromHome } from '../../../common_steps/openEventFromHome';
 import { bookTickets } from '../../../common_steps/bookTickets';
 import { buildCustomer } from '../../../utils/testData';
@@ -11,6 +11,8 @@ import { buildCustomer } from '../../../utils/testData';
 const TICKETS = 2;
 
 test.describe('Verify booking details', { tag: ['@ui', '@booking'] }, () => {
+  test.afterAll(({ fileSession }) => cleanUpTestData(fileSession));
+
   test(`book ${TICKETS} tickets and verify the booking details page`, async ({
     page,
     eventDetailsPage: detailsPage,

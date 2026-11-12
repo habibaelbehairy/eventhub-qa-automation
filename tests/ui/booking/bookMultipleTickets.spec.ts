@@ -51,6 +51,11 @@ test.describe('Book multiple tickets', { tag: ['@ui', '@booking'] }, () => {
       const seatsBefore = await test.step('Click Book Now: details page shows the same title and price', async () => {
         await card.bookNow();
         await detailsPage.waitForLoaded();
+        // Reload so the seat count is the server's current value. Without it the page can show a
+        // stale count (the previous test's booking was deleted in the background), and the drop
+        // measured below would be wrong (known defect UI-2: counts only refresh after a reload).
+        await page.reload();
+        await detailsPage.waitForLoaded();
         await expect(detailsPage.title).toHaveText(eventData.title);
         expect(await detailsPage.pricePerTicketValue()).toBe(eventData.price);
         // The details page is the source of truth for seats (the Home card can be a moment stale on

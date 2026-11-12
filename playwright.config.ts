@@ -1,12 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
 import { env } from './config/env';
+import type { Role } from './auth/users';
 
 /**
  * Projects:
  *  - ui:  browser tests; the auth fixture logs in lazily and caches the session (fixtures/auth.fixture.ts)
  *  - api: REST API tests; no browser, the API client logs its role in once (fixtures/apiOnly.fixture.ts)
  */
-export default defineConfig({
+export default defineConfig<{ role: Role }>({
   testDir: './tests',
   timeout: env.timeouts.test,
   expect: { timeout: env.timeouts.expect },
@@ -30,7 +31,9 @@ export default defineConfig({
   },
 
   projects: [
-    { name: 'ui', testDir: './tests/ui' },
-    { name: 'api', testDir: './tests/api' },
+    // Each project has its own account, so `npm run test:ui` and `npm run test:api` can run at the same time
+    // (two terminals) without touching each other's bookings.
+    { name: 'ui', testDir: './tests/ui', use: { role: 'primaryUser' } },
+    { name: 'api', testDir: './tests/api', use: { role: 'secondaryUser' } },
   ],
 });

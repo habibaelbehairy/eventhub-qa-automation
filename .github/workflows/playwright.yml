@@ -1,0 +1,54 @@
+name: EventHub tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Install browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Write test credentials
+        env:
+          PRIMARY_EMAIL: ${{ secrets.PRIMARY_USER_EMAIL }}
+          PRIMARY_PASSWORD: ${{ secrets.PRIMARY_USER_PASSWORD }}
+          SECONDARY_EMAIL: ${{ secrets.SECONDARY_USER_EMAIL }}
+          SECONDARY_PASSWORD: ${{ secrets.SECONDARY_USER_PASSWORD }}
+        run: |
+          node -e "
+          const e = process.env;
+          require('fs').writeFileSync('data/testcredentials.json', JSON.stringify({
+            primaryUser: { email: e.PRIMARY_EMAIL, password: e.PRIMARY_PASSWORD },
+            secondaryUser: { email: e.SECONDARY_EMAIL, password: e.SECONDARY_PASSWORD }
+          }));
+          "
+
+      - name: Run tests
+        run: npx playwright test
+
+      - name: Upload report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14

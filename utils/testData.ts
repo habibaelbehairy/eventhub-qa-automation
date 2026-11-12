@@ -1,7 +1,8 @@
 import { faker } from '@faker-js/faker';
 import { CustomerDetails } from '../page_objects/EventDetailsPage';
 import { EventFormData } from '../page_objects/admin/AdminEventsPage';
-import { futureDateTime } from './dates';
+import { CreateBookingInput, CreateEventInput } from '../api/EventHubApi';
+import { futureDateTime, futureIsoDateTime } from './dates';
 
 /** Random, valid customer details for the booking form. */
 export function buildCustomer(overrides: Partial<CustomerDetails> = {}): CustomerDetails {
@@ -27,6 +28,36 @@ export function buildEvent(overrides: Partial<EventFormData> = {}): EventFormDat
     dateTime: futureDateTime(),
     price: 50,
     totalSeats: 20,
+    ...overrides,
+  };
+}
+
+/** Valid body for POST /events. The unique title lets a test find its own event among the shared data. */
+export function buildApiEvent(overrides: Partial<CreateEventInput> = {}): CreateEventInput {
+  return {
+    title: `QA Event ${faker.string.alphanumeric(8)}`,
+    description: faker.lorem.sentence(),
+    category: 'Workshop',
+    venue: `${faker.location.street()}, Pune`,
+    city: 'Pune',
+    eventDate: futureIsoDateTime(),
+    price: 50,
+    totalSeats: 20,
+    ...overrides,
+  };
+}
+
+/** Valid body for POST /bookings on the given event. */
+export function buildApiBooking(eventId: number, overrides: Partial<CreateBookingInput> = {}): CreateBookingInput {
+  const firstName = faker.person.firstName();
+  const lastName = faker.person.lastName();
+  return {
+    eventId,
+    customerName: `${firstName} ${lastName}`,
+    customerEmail: faker.internet.email({ firstName, lastName, provider: 'example.com' }).toLowerCase(),
+    // API requires at least 10 characters; keep it looking like a real mobile number.
+    customerPhone: `+91 9${faker.string.numeric(9)}`,
+    quantity: 2,
     ...overrides,
   };
 }

@@ -3,8 +3,8 @@ import { env } from './config/env';
 
 /**
  * Projects:
- *  - ui: browser tests; the auth fixture logs in lazily and caches the session (fixtures/auth.fixture.ts)
- * A future "api" project can be added next to "ui".
+ *  - ui:  browser tests; the auth fixture logs in lazily and caches the session (fixtures/auth.fixture.ts)
+ *  - api: REST API tests; no browser, the API client logs its role in once (fixtures/apiOnly.fixture.ts)
  */
 export default defineConfig({
   testDir: './tests',
@@ -29,5 +29,8 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
 
-  projects: [{ name: 'ui', testDir: './tests/ui' }],
+  projects: [
+    { name: 'ui', testDir: './tests/ui' },
+    { name: 'api', testDir: './tests/api' },
+  ],
 });

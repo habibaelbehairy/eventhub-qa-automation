@@ -2,6 +2,7 @@ import { test as base } from '@playwright/test';
 import { apiTest } from './api.fixture';
 import { EventHubApi } from '../api/EventHubApi';
 import { newApiContext } from '../api/apiSession';
+import { Role } from '../auth/users';
 
 /** Collects the bookings a test makes so they can be deleted after the test. */
 export class BookingTracker {
@@ -49,32 +50,40 @@ export const cleanupTest = apiTest.extend<CleanupFixtures>({
   bookings: async ({ role }, use) => {
     const tracker = new BookingTracker();
     await use(tracker);
-
-    if (tracker.tracked.length === 0 || role === 'anonymous') return;
-    await base.step(`Cleanup: delete ${tracker.tracked.length} booking(s) through the API`, async () => {
-      const context = await newApiContext(role);
-      try {
-        const api = new EventHubApi(context);
-        for (const ref of tracker.tracked) await api.deleteBookingByRef(ref);
-      } finally {
-        await context.dispose();
-      }
-    });
+    await deleteTrackedBookings(role, tracker);
   },
 
   events: async ({ role }, use) => {
     const tracker = new EventTracker();
     await use(tracker);
-
-    if (tracker.tracked.length === 0 || role === 'anonymous') return;
-    await base.step(`Cleanup: delete ${tracker.tracked.length} event(s) through the API`, async () => {
-      const context = await newApiContext(role);
-      try {
-        const api = new EventHubApi(context);
-        for (const title of tracker.tracked) await api.deleteOwnEventsByTitle(title);
-      } finally {
-        await context.dispose();
-      }
-    });
+    await deleteTrackedEvents(role, tracker);
   },
 });
+
+/** Deletes every booking the tracker collected, through the API. Reused by the UI and API fixtures. */
+export async function deleteTrackedBookings(role: Role, tracker: BookingTracker): Promise<void> {
+  if (tracker.tracked.length === 0 || role === 'anonymous') return;
+  await base.step(`Cleanup: delete ${tracker.tracked.length} booking(s) through the API`, async () => {
+    const context = await newApiContext(role);
+    try {
+      const api = new EventHubApi(context);
+      for (const ref of tracker.tracked) await api.deleteBookingByRef(ref);
+    } finally {
+      await context.dispose();
+    }
+  });
+}
+
+/** Deletes every event the tracker collected (by title), through the API. Reused by the UI and API fixtures. */
+export async function deleteTrackedEvents(role: Role, tracker: EventTracker): Promise<void> {
+  if (tracker.tracked.length === 0 || role === 'anonymous') return;
+  await base.step(`Cleanup: delete ${tracker.tracked.length} event(s) through the API`, async () => {
+    const context = await newApiContext(role);
+    try {
+      const api = new EventHubApi(context);
+      for (const title of tracker.tracked) await api.deleteOwnEventsByTitle(title);
+    } finally {
+      await context.dispose();
+    }
+  });
+}

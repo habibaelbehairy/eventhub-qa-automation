@@ -27,6 +27,14 @@ export function futureDateTime(daysAhead = 120): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T12:00`;
 }
 
+/** ISO 8601 date-time `daysAhead` days from now (e.g. "2026-06-15T12:00:00.000Z"), the format the API expects. */
+export function futureIsoDateTime(daysAhead = 120): string {
+  const date = new Date();
+  date.setDate(date.getDate() + daysAhead);
+  date.setHours(12, 0, 0, 0);
+  return date.toISOString();
+}
+
 /** Form date & time "2027-03-10T12:00" -> the date as shown in the Manage Events table: "10 Mar 2027". */
 export function tableDate(dateTime: string): string {
   const match = dateTime.match(/^(\d{4})-(\d{2})-(\d{2})T/);

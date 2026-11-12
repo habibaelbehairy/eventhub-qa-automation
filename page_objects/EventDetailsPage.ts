@@ -11,6 +11,9 @@ export interface CustomerDetails {
   phone: string;
 }
 
+/** The three customer fields of the booking form. */
+export type FormField = keyof CustomerDetails;
+
 /** Event details "/events/{id}" — event info, the booking form and the booking confirmation. */
 export class EventDetailsPage extends BasePage {
   protected path: string = S.props.path;
@@ -36,6 +39,8 @@ export class EventDetailsPage extends BasePage {
   readonly bookTicketsHeading: Locator;
   /** Price shown in the booking panel next to "Book Tickets". */
   readonly formPrice: Locator;
+  /** "per ticket" under the price in the booking panel. */
+  readonly perTicketText: Locator;
   readonly decreaseButton: Locator;
   readonly increaseButton: Locator;
   readonly quantity: Locator;
@@ -73,6 +78,7 @@ export class EventDetailsPage extends BasePage {
 
     this.bookTicketsHeading = form.elements.heading;
     this.formPrice = form.elements.price;
+    this.perTicketText = form.elements.perTicketText;
     this.decreaseButton = form.elements.decreaseButton;
     this.increaseButton = form.elements.increaseButton;
     this.quantity = form.elements.quantity;
@@ -108,13 +114,17 @@ export class EventDetailsPage extends BasePage {
 
   /** Clicks + / − until the requested quantity is shown. */
   async setQuantity(target: number): Promise<void> {
-    let current = await this.quantityValue();
-    while (current !== target) {
+    const step = async (current: number): Promise<void> => {
+      if (current === target) return;
+
       await (current < target ? this.increaseButton : this.decreaseButton).click();
       const next = await this.quantityValue();
       if (next === current) throw new Error(`Quantity stuck at ${current}, cannot reach ${target}`);
-      current = next;
-    }
+
+      return step(next);
+    };
+
+    await step(await this.quantityValue());
   }
 
   async fillCustomerDetails(customer: CustomerDetails): Promise<void> {
@@ -142,6 +152,16 @@ export class EventDetailsPage extends BasePage {
     return parseMoney(await this.pricePerTicket.innerText());
   }
 
+  /** N from the "(max N)" hint next to the ticket selector. */
+  async maxTicketsValue(): Promise<number> {
+    return parseIntFrom(await this.maxTicketsHint.innerText());
+  }
+
+  /** Clicks + once if it is enabled (at the maximum it may be disabled or simply do nothing). */
+  async tryIncrease(): Promise<void> {
+    if (await this.increaseButton.isEnabled()) await this.increaseButton.click();
+  }
+
   async formPriceValue(): Promise<number> {
     return parseMoney(await this.formPrice.innerText());
   }
@@ -154,6 +174,45 @@ export class EventDetailsPage extends BasePage {
   /** Validation message in the booking form, e.g. props.validationMessages.email */
   validationError(message: string): Locator {
     return this.ui.sections.bookingForm.element('validationError', { message });
+  }
+
+  // ---- form field helpers (used by the validation tests) -----------------
+
+  /** Input for a form field: 'name' | 'email' | 'phone'. */
+  fieldInput(field: FormField): Locator {
+    return { name: this.nameInput, email: this.emailInput, phone: this.phoneInput }[field];
+  }
+
+  async setFieldValue(field: FormField, value: string): Promise<void> {
+    await this.fieldInput(field).fill(value);
+  }
+
+  /** Clears one of the booking form fields without reloading the page. */
+  async clearFieldValue(field: FormField): Promise<void> {
+    await this.fieldInput(field).fill('');
+  }
+
+  /** Clicks Confirm Booking and waits until validation has run (at least one inline error shown). */
+  async submitForm(): Promise<void> {
+    await this.confirmBooking();
+    const { name, email, phone } = this.props.validationMessages;
+    await expect(this.validationError(name).or(this.validationError(email)).or(this.validationError(phone)).first()).toBeVisible();
+  }
+
+  /** The field's inline error (text from props.validationMessages) is shown. */
+  async assertInlineError(field: FormField): Promise<void> {
+    await expect(this.validationError(this.props.validationMessages[field]), `${field} inline error`).toBeVisible();
+  }
+
+  /** The field's inline error is NOT shown (call after submitForm so validation has run). */
+  async assertNoInlineError(field: FormField): Promise<void> {
+    await expect(this.validationError(this.props.validationMessages[field]), `no ${field} inline error`).toBeHidden();
+  }
+
+  /** No booking was made: the confirmation did not appear and the form is still there. */
+  async assertNoBookingCreated(): Promise<void> {
+    await expect(this.confirmationHeading).toBeHidden();
+    await expect(this.confirmBookingButton).toBeVisible();
   }
 
   // ---- confirmation -------------------------------------------------------

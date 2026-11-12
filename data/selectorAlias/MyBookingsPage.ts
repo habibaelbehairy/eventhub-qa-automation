@@ -9,9 +9,20 @@ export default defineSelectors({
     heading: 'role=heading[name="My Bookings"s][level=1]',
     bookingCards: '[data-testid="booking-card"]',
     bookingCardByRef: '[data-testid="booking-card"]:has(.booking-ref:text-is("{ref}"))',
+    bookingCardsByEventTitle: '[data-testid="booking-card"]:has(h3:text-is("{title}"))',
     // Deletes ALL of the user's bookings.
     clearAllBookingsButton: 'role=button[name="Clear all bookings"s]',
     emptyStateHeading: 'role=heading[name="No bookings yet"s]',
     browseEventsButton: 'role=button[name="Browse Events"s]',
+  },
+  sections: {
+    // Confirmation after "Clear all bookings", IF the app shows its own modal (not observed yet).
+    // A native browser confirm() is handled in the page object instead.
+    clearAllDialog: {
+      selector: 'role=dialog',
+      elements: {
+        confirmButton: 'role=button[name=/^(yes|confirm|clear|delete)/i]',
+      },
+    },
   },
 });

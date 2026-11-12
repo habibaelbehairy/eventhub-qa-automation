@@ -10,6 +10,13 @@ export default defineSelectors({
       email: 'Enter a valid email',
       phone: 'Enter a valid 10-digit phone',
     },
+    // Static text of the booking form.
+    formContent: {
+      labels: { name: 'Full Name*', email: 'Email*', phone: 'Phone Number*' },
+      placeholders: { name: 'Your full name', email: 'you@email.com', phone: '+91 98765 43210' },
+      perTicket: 'per ticket',
+      confirmButton: 'Confirm Booking',
+    },
   },
   elements: {
     title: 'role=heading[level=1]',
@@ -28,6 +35,7 @@ export default defineSelectors({
         heading: 'role=heading[name="Book Tickets"s]',
         // "$2,500" next to the "Book Tickets" heading (shown above "per ticket").
         price: 'role=heading[name="Book Tickets"s] >> xpath=following-sibling::span[1]',
+        perTicketText: 'p:text-is("per ticket")',
         decreaseButton: 'role=button[name="−"s]',
         increaseButton: 'role=button[name="+"s]',
         // The quantity is the element between the − and + buttons.

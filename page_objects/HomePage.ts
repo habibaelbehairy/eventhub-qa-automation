@@ -1,6 +1,6 @@
 import { Page, Locator, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
-import { EventCard } from './components/EventCard';
+import { EventCard, EventCardCriteria } from './components/EventCard';
 import S from '../data/selectorAlias/HomePage';
 import { bindSelectors, BoundSection } from '../utils/selectorDefinition';
 
@@ -36,24 +36,16 @@ export class HomePage extends BasePage {
   /** All event cards currently shown, in page order. */
   async allEventCards(): Promise<EventCard[]> {
     await expect(this.eventCards.first()).toBeVisible();
-    const cards = await this.eventCards.all();
-    return cards.map((card) => new EventCard(card));
+    return EventCard.all(this.eventCards);
   }
 
   /**
-   * Loops through the cards like a user scanning the page and returns the first one
-   * with the given category badge (and, if asked, the "Featured" badge).
+   * Loops through the cards and returns the first one matching the category and options
+   * (featured, minSeats). Any category if `category` is omitted.
    */
-  async findEventCard(category: string, options: { featured?: boolean } = {}): Promise<EventCard> {
-    const cards = await this.allEventCards();
-    for (const card of cards) {
-      const cardCategory = (await card.categoryBadge.innerText()).trim();
-      const isFeatured = await card.featuredBadge.isVisible();
-      if (cardCategory === category && (options.featured === undefined || options.featured === isFeatured)) {
-        return card;
-      }
-    }
-    throw new Error(`No ${options.featured ? 'featured ' : ''}"${category}" card among ${cards.length} cards on the home page`);
+  async findEventCard(category?: string, options: Omit<EventCardCriteria, 'category'> = {}): Promise<EventCard> {
+    await expect(this.eventCards.first()).toBeVisible();
+    return EventCard.find(this.eventCards, { category, ...options }, 'home page');
   }
 
   async browseEvents(): Promise<void> {

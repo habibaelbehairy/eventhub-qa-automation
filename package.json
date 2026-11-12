@@ -7,7 +7,8 @@
     "test": "playwright test",
     "test:ui": "playwright test tests/ui",
     "report": "playwright show-report",
-    "typecheck": "tsc -p ."
+    "typecheck": "tsc -p .",
+    "cleanup": "playwright test --config cleanup.config.ts"
   },
   "keywords": [],
   "author": "",

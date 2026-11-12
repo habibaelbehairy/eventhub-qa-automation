@@ -4,3 +4,6 @@ node_modules/
 test-results/
 playwright-report/
 blob-report/
+
+# real credentials - share via the submission form, not git
+data/testcredentials.json

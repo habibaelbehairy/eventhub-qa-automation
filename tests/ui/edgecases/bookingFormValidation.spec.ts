@@ -125,11 +125,17 @@ test.describe('Booking form content and validation', { tag: ['@ui', '@edge'] }, 
     await detailsPage.clearFieldValue('phone');
   });
 
-  test('Verify the form submits and the booking is confirmed once name, email and phone are all valid', async ({ eventDetailsPage: detailsPage, bookings }) => {
+  test('Verify the form submits and the booking is confirmed once name, email and phone are all valid', async ({ page, eventDetailsPage: detailsPage, bookings }) => {
     // The phone placeholder is the field's own example; with the name and email already valid from
     // the earlier tests, the whole form is now valid and Confirm Booking should create a booking.
     await detailsPage.setFieldValue('phone', '+91 98765 43210');
+    // Track the booking from the API response, so it is deleted even if the confirmation check below fails.
+    const created = page.waitForResponse(
+      (response) => response.request().method() === 'POST' && /\/bookings\/?$/.test(new URL(response.url()).pathname),
+    );
     await detailsPage.confirmBooking();
+    const body = await (await created).json().catch(() => undefined);
+    if (body?.data?.bookingRef) bookings.track(body.data.bookingRef);
     await expect(detailsPage.confirmationHeading).toBeVisible();
     bookings.track(await detailsPage.confirmationBookingRefText());
   });

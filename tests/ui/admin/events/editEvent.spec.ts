@@ -1,4 +1,4 @@
-import { test, expect, cleanUpTestData } from '../../../../fixtures';
+import { test, expect } from '../../../../fixtures';
 import { buildEvent, buildCustomer } from '../../../../utils/testData';
 import { openEventByTitle } from '../../../../common_steps/openEventByTitle';
 import { bookTickets } from '../../../../common_steps/bookTickets';

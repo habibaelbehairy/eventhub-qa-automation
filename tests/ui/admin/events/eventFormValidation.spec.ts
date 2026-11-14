@@ -136,9 +136,10 @@ test.describe('Event form content and validation', { tag: ['@ui', '@admin', '@ed
     await adminEventsPage.assertNoEventCreated();
   });
 
-  test('Verify the form submits and the event is created once every required field is valid', async ({ adminEventsPage }) => {
+  test('Verify the form submits and the event is created once every required field is valid', async ({ adminEventsPage, events }) => {
     // With title, city, venue, date and price already valid from the earlier tests, setting a
     // valid seat count completes the form, so Add Event should create the event.
+    events.track('QA Validation Event'); // deleted through the API after the test, even if it fails
     await adminEventsPage.setFieldValue('totalSeats', '1');
     await adminEventsPage.addEventButton.click();
     await expect(adminEventsPage.eventRow('QA Validation Event')).toBeVisible();

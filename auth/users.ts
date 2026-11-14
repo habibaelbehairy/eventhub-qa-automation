@@ -1,11 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import 'dotenv/config';
 import credentials from '../data/testcredentials.json';
+import { decryptText, isEncrypted } from '../utils/credentialsCrypto';
 
 /**
- * Test accounts. Credentials live in data/testcredentials.json (git-ignored, template:
- * data/testcredentials.example.json). A role added there is picked up everywhere:
- * the auth fixture logs it in, and specs can use it with test.use({ role: '<name>' }).
+ * Test accounts. Credentials live in data/testcredentials.json (template:
+ * data/testcredentials.example.json). A password is either plain text or encrypted
+ * ("<iv>:<data>:<tag>"); encrypted ones are decrypted with the CREDENTIALS_KEY passphrase
+ * (see README). A role added there is picked up everywhere: the auth fixture logs it in,
+ * and specs can use it with test.use({ role: '<name>' }).
  */
 export type UserRole = keyof typeof credentials;
 
@@ -20,7 +24,11 @@ export function roleForWorker(parallelIndex: number): UserRole {
 }
 
 export function getUser(role: UserRole): { email: string; password: string } {
-  return credentials[role];
+  const { email, password } = credentials[role];
+  if (!isEncrypted(password)) return { email, password };
+  const key = process.env.CREDENTIALS_KEY;
+  if (!key) throw new Error(`The password of "${role}" is encrypted: set CREDENTIALS_KEY (see README).`);
+  return { email, password: decryptText(password, key) };
 }
 
 /** Where the auth fixture saves the logged-in browser session of a role. */

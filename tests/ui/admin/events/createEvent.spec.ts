@@ -1,4 +1,4 @@
-import { test, expect, cleanUpTestData } from '../../../../fixtures';
+import { test, expect } from '../../../../fixtures';
 import { buildEvent } from '../../../../utils/testData';
 
 /** Admin > Manage Events: creating an event and the form validation. */

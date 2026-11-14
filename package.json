@@ -9,7 +9,9 @@
     "test:api": "playwright test --project=api",
     "report": "playwright show-report",
     "typecheck": "tsc -p .",
-    "cleanup": "playwright test --config cleanup.config.ts"
+    "cleanup": "playwright test --config cleanup.config.ts",
+    "credentials:encrypt": "tsx scripts/credentials.ts encrypt",
+    "credentials:decrypt": "tsx scripts/credentials.ts decrypt"
   },
   "keywords": [],
   "author": "",
@@ -20,6 +22,7 @@
     "@playwright/test": "^1.65.0",
     "@types/node": "^26.6.6",
     "dotenv": "^18.0.10",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   }
 }

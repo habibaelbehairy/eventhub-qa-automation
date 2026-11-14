@@ -27,6 +27,8 @@ jobs:
 
       - name: Run tests
         run: npx playwright test
+        env:
+          CREDENTIALS_KEY: ${{ secrets.CREDENTIALS_KEY }}
 
       - name: Upload report
         if: ${{ !cancelled() }}

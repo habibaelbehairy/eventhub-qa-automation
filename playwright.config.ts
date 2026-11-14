@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 import { env } from './config/env';
-import { USER_ROLES } from './auth/users';
+
+const DEFAULT_WORKERS = 4;
 
 /**
  * Projects:
@@ -11,11 +12,12 @@ export default defineConfig({
   testDir: './tests',
   timeout: env.timeouts.test,
   expect: { timeout: env.timeouts.expect },
-  // Each worker runs as its own account (worker 0 = primaryUser, worker 1 = secondaryUser, ...), so
-  // workers never share bookings. More workers than accounts would share one, so the default is one
-  // worker per account. Override with WORKERS=1 for a fully serial run. Tests inside a file stay in order.
+  // Default: 4 workers. Workers map to accounts in turn (worker 0 = primaryUser, worker 1 = secondaryUser,
+  // worker 2 = primaryUser, ...), so with fewer than 4 accounts some workers share an account (and its
+  // bookings). Override with WORKERS=2 (one per account) or WORKERS=1 for a serial run.
+  // Tests inside a file stay in order.
   fullyParallel: false,
-  workers: Number(process.env.WORKERS ?? USER_ROLES.length),
+  workers: Number(process.env.WORKERS ?? DEFAULT_WORKERS),
   retries: 1,
   forbidOnly: env.isCI,
   reporter: [['list'], ['html', { open: 'never' }]],

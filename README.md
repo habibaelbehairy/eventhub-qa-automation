@@ -7,7 +7,7 @@ Playwright + TypeScript UI and API automation for story **US-114 "Book tickets f
 ```powershell
 npm ci
 npx playwright install chromium
-Copy-Item data/testcredentials.example.json data/testcredentials.json   # optional: only to use your own accounts
+$env:CREDENTIALS_KEY="<passphrase>"   # decrypts the passwords in data/testcredentials.json (or put CREDENTIALS_KEY=... in .env)
 npm test                          # everything (ui + api)
 npx playwright test --project=ui
 npx playwright test --project=api
@@ -17,15 +17,31 @@ npm run report                    # open the HTML report
 
 Optional `.env`: `BASE_URL`, `API_BASE_URL`, `HEADLESS=false`, `SLOW_MO=500` (watch the flow locally).
 
-**Credentials.** Two throwaway test accounts on the public EventHub site are committed in [data/testcredentials.json](data/testcredentials.json) (roles `primaryUser` and `secondaryUser`), so `npm test` works right after `npm ci`. To use your own accounts, register them at https://eventhub.rahulshettyacademy.com and edit that file (`data/testcredentials.example.json` shows the shape).
+**Credentials.** Four throwaway test accounts on the public EventHub site (roles `primaryUser`, `secondaryUser`, `thirdUser`, `fourthUser`) are in [data/testcredentials.json](data/testcredentials.json). The emails are readable; each password is encrypted as `<iv>:<data>:<tag>` (AES-256-GCM, key derived from a passphrase). The passphrase is shared separately, not in the repository.
 
-**Parallel runs.** Each worker runs as its own account (worker 0 = `primaryUser`, worker 1 = `secondaryUser`), so the default is 2 workers. Use `$env:WORKERS=1` for a serial run. Do not run the `ui` and `api` projects in two terminals at the same time, because they would share the accounts. Tests inside one spec file always run in order. A failed test is retried once; a test that passes on the retry is reported as flaky.
+- **Run the tests:** set the passphrase, then run as usual. The framework decrypts the passwords in memory.
+  ```powershell
+  $env:CREDENTIALS_KEY="<passphrase>"
+  npm test
+  ```
+- **Decrypt a password** to see it:
+  ```powershell
+  npm run credentials:decrypt -- "<iv>:<data>:<tag>"
+  ```
+- **Encrypt a new password** and paste the printed value into the JSON:
+  ```powershell
+  npm run credentials:encrypt -- "MyPassword1."
+  ```
+  A password written as plain text also works, and needs no passphrase.
+- **CI:** add the passphrase as the repository secret `CREDENTIALS_KEY`.
+
+**Parallel runs.** Each worker runs as its own account (worker 0 = `primaryUser`, worker 1 = `secondaryUser`, ...), so the default is 4 workers, one per account. Use `$env:WORKERS=1` for a serial run. Do not run the `ui` and `api` projects in two terminals at the same time, because they would share the accounts. Tests inside one spec file always run in order. A failed test is retried once; a test that passes on the retry is reported as flaky.
 
 **Expected red tests.** Two tests in `tests/ui/admin/events/decimalPriceEvent.spec.ts` fail on purpose. They document a real product bug (decimal prices are rounded in the UI, see the story review). Everything else should be green, so CI shows exactly 2 failures until the bug is fixed.
 
 `npm run cleanup` removes bookings and events left on the test account by an interrupted run.
 
-In CI ([.github/workflows/playwright.yml](.github/workflows/playwright.yml)) the committed credentials file is used, so no repository secrets are needed. The HTML report is uploaded as an artifact.
+In CI ([.github/workflows/playwright.yml](.github/workflows/playwright.yml)) the encrypted passwords are decrypted with the `CREDENTIALS_KEY` secret. The HTML report is uploaded as an artifact.
 
 ## Story review
 
@@ -80,7 +96,7 @@ eventhub-qa-automation/
 ├── common_steps/                      Reusable multi-page flows (open event, book tickets, check seats)
 ├── config/env.ts                      URLs, timeouts, headless, CI flag
 ├── data/
-│   ├── testcredentials.example.json   Template for the (git-ignored) testcredentials.json
+│   ├── testcredentials.json           Test accounts (emails plain, passwords encrypted)
 │   └── selectorAlias/                 Selector strings and routes, one file per page object
 ├── docs/test-cases/                   Manual test cases (UI and API)
 ├── fixtures/

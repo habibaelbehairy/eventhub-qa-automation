@@ -36,9 +36,14 @@ export class BookingsApi {
     return this.api.get(`bookings/${bookingId}`);
   }
 
+  /** Raw GET /bookings/ref/{ref}, so a test can assert a 403/404 for a booking of another user. */
+  async getBookingByRefResponse(bookingRef: string): Promise<APIResponse> {
+    return this.api.get(`bookings/ref/${encodeURIComponent(bookingRef)}`);
+  }
+
   /** The booking for a reference shown in the UI, or undefined if it does not exist (any more). */
   async findBookingByRef(bookingRef: string): Promise<ApiBooking | undefined> {
-    const response = await this.api.get(`bookings/ref/${encodeURIComponent(bookingRef)}`);
+    const response = await this.getBookingByRefResponse(bookingRef);
     if (response.status() === 404) return undefined;
     expect(response.status(), `GET bookings/ref/${bookingRef}`).toBe(200);
     return (await response.json()).data;

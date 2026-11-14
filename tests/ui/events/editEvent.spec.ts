@@ -1,7 +1,7 @@
-import { test, expect } from '../../../../fixtures';
-import { buildEvent, buildCustomer } from '../../../../utils/testData';
-import { openEventByTitle } from '../../../../common_steps/openEventByTitle';
-import { bookTickets } from '../../../../common_steps/bookTickets';
+import { test, expect } from '../../../fixtures';
+import { buildEvent, buildCustomer } from '../../../utils/testData';
+import { openEventByTitle } from '../../../common_steps/openEventByTitle';
+import { bookTickets } from '../../../common_steps/bookTickets';
 
 /** Admin > Manage Events: editing an own event, also when it already has a booking. */
 test.describe('Edit an event', { tag: ['@ui', '@admin'] }, () => {

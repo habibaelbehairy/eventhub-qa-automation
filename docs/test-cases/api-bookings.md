@@ -5,7 +5,7 @@
 | Story        | US-114 AC5 — the same works through the API using `POST /api/bookings` (also AC1–AC4 through the API) |
 | Base URL     | `https://api.eventhub.rahulshettyacademy.com/api` |
 | Authorization | Bearer token from `POST /auth/login`. The framework logs in and sends the token; tests never do. |
-| Automated in | `tests/api/createBooking.spec.ts`, `tests/api/cancelBooking.spec.ts`, `tests/api/createBookingValidation.spec.ts`, `tests/api/edgecases/*.spec.ts` |
+| Automated in | `tests/api/booking/`, `tests/api/cancellation/`, `tests/api/edgecases/` |
 | Test data    | Bookings are made on existing events; events are created only where the seat count must be known. Everything created is deleted through the API after each test. |
 
 Manual steps: use Swagger ("API Docs" in the nav bar) or Postman. Authorize with the token from `POST /auth/login`.
@@ -37,9 +37,13 @@ Clear the pre-filled filters of `GET /events` or the list comes back empty.
 | TC-API-09 | Quantity 0 | `POST /bookings` with `quantity` 0 | 400. |
 | TC-API-10 | Negative quantity | `POST /bookings` with `quantity` -1 | 400. |
 | TC-API-11 | Quantity above the limit | `POST /bookings` with `quantity` 11 | 400 (the maximum per booking is 10). |
-| TC-API-12 | Unknown event | `POST /bookings` with `eventId` 999999999 | 404, nothing is created. |
+| TC-API-12 | Unknown event | `POST /bookings` with `eventId` 999999999 | 404, and the number of bookings in `GET /bookings` is unchanged. |
 | TC-API-13 | More tickets than seats | Create an event with 2 seats → book 3 | 400. `availableSeats` is still 2. |
 | TC-API-14 | No token | `POST /bookings` without the `Authorization` header | 401. |
+| TC-API-19 | Maximum quantity is accepted | Create an event with 20 seats → book 10 | 201, `quantity` 10, `availableSeats` is 10. |
+| TC-API-20 | Invalid email | `POST /bookings` with email `plainaddress`, `user@`, `@example.com` or `user name@example.com` | 400 each time; no seats are taken. |
+| TC-API-21 | Invalid phone | `POST /bookings` with phone `123456789` (9 digits) or `abcdefghij` (letters) | 400 each time; no seats are taken. |
+| TC-API-18 | Another user's booking is protected (`bookingOwnership`) | Account A creates an event and books 1 ticket → account B calls `GET /bookings/{id}`, `GET /bookings/ref/{ref}`, `GET /bookings` and `DELETE /bookings/{id}` | B gets 403 or 404 on the id, reference and cancel calls, and the booking is not in B's list. For A the booking is still "confirmed" and the seat is still taken. |
 
 ## Edge cases: `tests/api/edgecases`
 

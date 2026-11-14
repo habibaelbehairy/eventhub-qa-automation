@@ -1,5 +1,5 @@
-import { test, expect } from '../../../../fixtures';
-import { buildEvent } from '../../../../utils/testData';
+import { test, expect } from '../../../fixtures';
+import { buildEvent } from '../../../utils/testData';
 
 /** Admin > Manage Events: creating an event and the form validation. */
 test.describe('Create an event', { tag: ['@ui', '@admin'] }, () => {

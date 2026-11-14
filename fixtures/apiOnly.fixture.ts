@@ -1,5 +1,5 @@
 import { test as base } from '@playwright/test';
-import { Role, roleForWorker } from '../auth/users';
+import { Role, USER_ROLES, roleForWorker } from '../auth/users';
 import { EventHubApi } from '../api/EventHubApi';
 import { newApiContext } from '../api/apiSession';
 import {
@@ -22,6 +22,8 @@ export interface ApiOnlyFixtures {
   role: Role;
   /** EventHub API client authorised as `role`. */
   api: EventHubApi;
+  /** EventHub API client authorised as a DIFFERENT account than `role` (for cross-user / security tests). */
+  otherApi: EventHubApi;
   /** Track bookings (by reference) to have them deleted after the test. */
   bookings: BookingTracker;
   /** Track events (by title) to have them deleted after the test. */
@@ -34,6 +36,14 @@ export const test = base.extend<ApiOnlyFixtures>({
   api: async ({ role }, use) => {
     if (role === 'anonymous') throw new Error('The "api" fixture needs a logged-in role, not "anonymous".');
     const context = await newApiContext(role);
+    await use(new EventHubApi(context));
+    await context.dispose();
+  },
+
+  otherApi: async ({ role }, use) => {
+    const other = USER_ROLES.find((r) => r !== role);
+    if (!other) throw new Error('The "otherApi" fixture needs at least two accounts in data/testcredentials.json.');
+    const context = await newApiContext(other);
     await use(new EventHubApi(context));
     await context.dispose();
   },

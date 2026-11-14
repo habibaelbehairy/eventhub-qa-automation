@@ -1,7 +1,7 @@
-import { test, expect } from '../../../../fixtures';
-import { buildEvent, buildCustomer } from '../../../../utils/testData';
-import { openEventByTitle } from '../../../../common_steps/openEventByTitle';
-import { bookTickets } from '../../../../common_steps/bookTickets';
+import { test, expect } from '../../../fixtures';
+import { buildEvent, buildCustomer } from '../../../utils/testData';
+import { openEventByTitle } from '../../../common_steps/openEventByTitle';
+import { bookTickets } from '../../../common_steps/bookTickets';
 
 /** Admin > Manage Events: deleting an own event that already has a booking. */
 test.describe('Delete an event', { tag: ['@ui', '@admin'] }, () => {

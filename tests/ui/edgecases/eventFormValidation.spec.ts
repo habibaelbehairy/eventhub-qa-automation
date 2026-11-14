@@ -1,5 +1,5 @@
-import { test, expect, cleanUpTestData } from '../../../../fixtures';
-import { EventFormField } from '../../../../page_objects/admin/AdminEventsPage';
+import { test, expect, cleanUpTestData } from '../../../fixtures';
+import { EventFormField } from '../../../page_objects/admin/AdminEventsPage';
 
 /**
  * Admin > Manage Events — "+ New Event" form content and field validation (UI only).

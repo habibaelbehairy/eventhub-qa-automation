@@ -80,7 +80,7 @@ test.describe('Book a ticket for a featured event', { tag: ['@ui', '@booking'] }
       await test.step('Time matches the event time from the API (shown in the browser time zone)', async () => {
         // The card has no time, so the API's eventDate is the reference.
         const eventId = Number(page.url().split('/').pop());
-        const event = await api.getEvent(eventId);
+        const event = await api.events.getEvent(eventId);
 
         const expected = await page.evaluate((iso: string) => {
           const d = new Date(iso);

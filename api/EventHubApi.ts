@@ -8,8 +8,8 @@ export * from './types';
  * Typed client for the EventHub REST API, composed of one class per resource:
  * `events` (EventsApi) and `bookings` (BookingsApi).
  *
- * The methods below delegate to them, so the specs can keep calling `api.createEvent(...)`,
- * `api.createBooking(...)` and so on; new code may also use `api.events` / `api.bookings` directly.
+ * Specs call the resource clients directly (`api.events.createEvent(...)`, `api.bookings.createBooking(...)`).
+ * This class only adds what spans both resources or the account: `currentUserId()` and `cleanupAccount()`.
  * Every endpoint needs a Bearer token, which the fixtures put on the request context.
  */
 export class EventHubApi {
@@ -20,29 +20,6 @@ export class EventHubApi {
     this.bookings = new BookingsApi(api);
     this.events = new EventsApi(api, this.bookings, () => this.currentUserId());
   }
-
-  // ---- events (see EventsApi) ----------------------------------------------
-  getEvent = (...args: Parameters<EventsApi['getEvent']>) => this.events.getEvent(...args);
-  getEventResponse = (...args: Parameters<EventsApi['getEventResponse']>) => this.events.getEventResponse(...args);
-  availableSeats = (...args: Parameters<EventsApi['availableSeats']>) => this.events.availableSeats(...args);
-  createEvent = (...args: Parameters<EventsApi['createEvent']>) => this.events.createEvent(...args);
-  listEvents = () => this.events.listEvents();
-  updateEvent = (...args: Parameters<EventsApi['updateEvent']>) => this.events.updateEvent(...args);
-  removeEvent = (...args: Parameters<EventsApi['removeEvent']>) => this.events.removeEvent(...args);
-  deleteEvent = (...args: Parameters<EventsApi['deleteEvent']>) => this.events.deleteEvent(...args);
-  listOwnEvents = () => this.events.listOwnEvents();
-  deleteOwnEventsByTitle = (...args: Parameters<EventsApi['deleteOwnEventsByTitle']>) => this.events.deleteOwnEventsByTitle(...args);
-  deleteOwnEvents = () => this.events.deleteOwnEvents();
-
-  // ---- bookings (see BookingsApi) ------------------------------------------
-  listBookings = (...args: Parameters<BookingsApi['listBookings']>) => this.bookings.listBookings(...args);
-  postBooking = (...args: Parameters<BookingsApi['postBooking']>) => this.bookings.postBooking(...args);
-  createBooking = (...args: Parameters<BookingsApi['createBooking']>) => this.bookings.createBooking(...args);
-  cancelBooking = (...args: Parameters<BookingsApi['cancelBooking']>) => this.bookings.cancelBooking(...args);
-  getBookingResponse = (...args: Parameters<BookingsApi['getBookingResponse']>) => this.bookings.getBookingResponse(...args);
-  findBookingByRef = (...args: Parameters<BookingsApi['findBookingByRef']>) => this.bookings.findBookingByRef(...args);
-  deleteBooking = (...args: Parameters<BookingsApi['deleteBooking']>) => this.bookings.deleteBooking(...args);
-  deleteBookingByRef = (...args: Parameters<BookingsApi['deleteBookingByRef']>) => this.bookings.deleteBookingByRef(...args);
 
   // ---- account -------------------------------------------------------------
 

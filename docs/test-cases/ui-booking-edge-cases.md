@@ -2,7 +2,7 @@
 
 | Item         | Value |
 | ------------ | ----- |
-| Automated in | `tests/ui/edgecases/` |
+| Automated in | `tests/ui/edgecases/`, `tests/ui/edgecases/anonymousAccess.spec.ts` (TC-EDGE-10) |
 | Approach     | UI only: no mocks, no API calls (setup, checks and cleanup all go through the UI). |
 | Test data    | Any booking a test creates is tracked and cancelled afterwards by the cleanup fixture. |
 | Tag          | `@edge` — run with `npx playwright test --grep @edge` |
@@ -27,6 +27,12 @@ Each validation case fills only the field under test; the others stay empty, so 
 | TC-EDGE-07  | Email | "plainaddress", "user@", "@example.com", "user name@example.com" rejected; "user@example.com" accepted. |
 | TC-EDGE-08  | Phone | 9 digits and letters rejected. |
 | TC-EDGE-09  | Valid form | With a valid name, email and phone ("+91 98765 43210") the booking is confirmed; the booking reference is tracked and cancelled by the cleanup fixture. |
+
+## Access without login — `tests/ui/edgecases/anonymousAccess.spec.ts`
+
+| ID          | Test case | Expected |
+| ----------- | --------- | -------- |
+| TC-EDGE-10  | Visitor who is not logged in opens `/bookings` | Redirected to `/login`; the "Sign in to EventHub" heading is shown and the My Bookings heading is not. |
 
 ## Expected outcomes still to confirm on first run
 

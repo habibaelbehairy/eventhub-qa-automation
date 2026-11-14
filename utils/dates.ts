@@ -35,6 +35,14 @@ export function futureIsoDateTime(daysAhead = 120): string {
   return date.toISOString();
 }
 
+/** ISO 8601 date-time `daysAgo` days in the past (e.g. an event that has already happened). */
+export function pastIsoDateTime(daysAgo = 30): string {
+  const date = new Date();
+  date.setDate(date.getDate() - daysAgo);
+  date.setHours(12, 0, 0, 0);
+  return date.toISOString();
+}
+
 /** Form date & time "2027-03-10T12:00" -> the date as shown in the Manage Events table: "10 Mar 2027". */
 export function tableDate(dateTime: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})T/.exec(dateTime);

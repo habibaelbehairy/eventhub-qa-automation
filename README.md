@@ -2,7 +2,7 @@
 
 Playwright + TypeScript UI and API automation for story **US-114 "Book tickets for an event"** (AC1-AC5) on https://eventhub.rahulshettyacademy.com.
 
-In numbers: **93 tests in 30 files** (UI and API), 4 test accounts, one GitHub Actions workflow. 5 tests are expected failures that document 3 product defects (see [Defects and observations](#defects-and-observations)); everything else is green.
+In numbers: **95 tests in 29 files** (UI and API), 4 test accounts, one GitHub Actions workflow. 3 tests are expected failures that document 2 product defects (see [Defects and observations](#defects-and-observations)); everything else is green.
 
 ## What the assessment asked for, and where to find it
 
@@ -60,13 +60,12 @@ Optional `.env`: `BASE_URL`, `API_BASE_URL`, `HEADLESS=false`, `SLOW_MO=500` (wa
 
 **Parallel runs.** Each worker runs as its own account (worker 0 = `primaryUser`, worker 1 = `secondaryUser`, ...), so the default is 4 workers, one per account. Use `$env:WORKERS=1` for a serial run. Do not run the `ui` and `api` projects in two terminals at the same time, because they would share the accounts. Tests inside one spec file always run in order. A failed test is retried once; a test that passes on the retry is reported as flaky.
 
-**Expected failures.** Five tests document product defects and are marked `test.fail(...)` with the `@xfail` tag. The report shows them as passed (they fail as expected), so a normal run is green. If one of them starts to really pass, Playwright reports it as a failure, which means the bug was fixed and the marker can be removed. List them with `npm run test:xfail` (or `npx playwright test --grep "@xfail"`; quote it in PowerShell). Each one carries its reason in the report: the HTML report shows a `fail` annotation with the defect description on the test. They are:
+**Expected failures.** Three tests document product defects and are marked `test.fail(...)` with the `@xfail` tag. The report shows them as passed (they fail as expected), so a normal run is green. If one of them starts to really pass, Playwright reports it as a failure, which means the bug was fixed and the marker can be removed. List them with `npm run test:xfail` (or `npx playwright test --grep "@xfail"`; quote it in PowerShell). Each one carries its reason in the report: the HTML report shows a `fail` annotation with the defect description on the test. They are:
 
 | Defect | Test |
 | --- | --- |
-| 1 Past event can be booked | `tests/ui/edgecases/bookPastEvent.spec.ts`, `tests/api/edgecases/bookPastEvent.spec.ts` |
 | 2 Decimal price rounded in the UI | `tests/ui/edgecases/decimalPriceEvent.spec.ts` (2 tests) |
-| 3 Featured event city missing from the city filter | `tests/ui/events/eventsPageConsistency.spec.ts` |
+| 3 Fractional seat count (1.5) accepted by the event form | `tests/ui/edgecases/eventFormValidation.spec.ts` (1 test) |
 
 **Tags.** `@ui`, `@api`, `@booking`, `@admin`, `@edge`/`@edgecase`, `@negative`, `@security`, `@xfail`, `@seeded` (tests that use only the seeded events, see decision 13). For example `npx playwright test --grep @security`.
 
@@ -80,7 +79,7 @@ In CI ([.github/workflows/playwright.yml](.github/workflows/playwright.yml)) the
 
 ## Story review
 
-Manual test cases are in [docs/test-cases](docs/test-cases).
+Manual test cases are in [docs/test-cases/ui](docs/test-cases/ui) and [docs/test-cases/api](docs/test-cases/api).
 
 ### What is wrong, missing or unclear in US-114
 
@@ -116,18 +115,19 @@ A version the team could test without guessing (every sentence maps to a questio
 - The booking reference is valid if it matches `/^[A-Z0-9]+-[A-Z0-9]{6}$/`.
 - The price shown on the event is the price per ticket in dollars.
 - The maximum is 10 tickets per booking and the minimum is 1 (taken from the UI and the API; not stated in the story).
-- Behaviour that the story leaves open (past events, decimal prices, the city filter) is recorded as an expected failure, not as a confirmed bug, until the Product Owner answers.
+- Behaviour that the story leaves open (past events, decimal prices, fractional seats) is recorded as an expected failure, not as a confirmed bug, until the Product Owner answers.
 - The shared site can change while the tests run (other people book the same events). Tests whose result depends on an exact seat count (more tickets than seats, a 20-seat event, the same event twice) create their own event through the API. Tests on the seeded events compare the seats before and after, not absolute numbers.
 
 ## Defects and observations
 
-The requirements do not say what is correct for the three defects below, so their tests are marked as expected failures (`test.fail(...)` and the `@xfail` tag). The pipeline stays green, the defects stay visible in the report, and a test turns red when its bug is fixed. That is the signal to remove the marker. Run them with `npx playwright test --grep "@xfail"`.
+The requirements do not say what is correct for defects 2 and 3 below, so their tests are marked as expected failures (`test.fail(...)` and the `@xfail` tag). The pipeline stays green, the defects stay visible in the report, and a test turns red when its bug is fixed. That is the signal to remove the marker. Run them with `npx playwright test --grep "@xfail"`. Defects 1 and 4 are observations without a test (4 is only observed, ask the Product Owner). Defect 1: a past event cannot be created in the UI or the API (checked by `tests/ui/events/createPastEvent.spec.ts` and `tests/api/events/createPastEvent.spec.ts`), so only the seeded past events can be booked.
 
 | # | Defect | Where | Steps and evidence | Expected | Actual | Tests |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Past events can be booked | UI and API | Open an event dated in the past (World Tech Summit, 18 Apr 2026) and book it, or `POST /bookings` for it. | Booking is blocked (button disabled or an error). | Booking is confirmed. | `tests/ui/edgecases/bookPastEvent.spec.ts`, `tests/api/edgecases/bookPastEvent.spec.ts` |
+| 1 | Past events can be booked | UI and API | Open an event dated in the past (World Tech Summit, 18 Apr 2026) and book it, or `POST /bookings` for it. | Booking is blocked (button disabled or an error). | Booking is confirmed. | No test (observation). Creating a past event is refused, see `tests/ui/events/createPastEvent.spec.ts` and `tests/api/events/createPastEvent.spec.ts` (both pass) |
 | 2 | Decimal prices are rounded in the UI | UI only | As admin, create an event with price 12.35 and book 3 tickets. | Price $12.35 and total $37.05 (AC2). | UI shows $12 and a rounded total. The API returns `"12.35"` and `totalPrice` 37.05, so only the UI is wrong. | `tests/ui/edgecases/decimalPriceEvent.spec.ts` (2 tests); the API check is in `tests/api/events/eventPrices.spec.ts` and passes |
-| 3 | A featured event has a city the city filter does not offer | UI | On the Events page, the demo concert is in "Los Angeles", which is not in the city filter. | Every event can be found with the city filter. | That event cannot be found by city. | `tests/ui/events/eventsPageConsistency.spec.ts` |
+| 3 | The event form accepts a fractional seat count | UI | As admin, open "+ New Event", fill the other fields and enter 1.5 in Total Seats. | An inline error, like for 0 or -5. | No inline error is shown. | `tests/ui/edgecases/eventFormValidation.spec.ts` (1 test) |
+| 4 | A featured event has a city the city filter does not offer | UI | On the Events page, the demo concert is in "Los Angeles", which is not in the city filter. | Every event can be found with the city filter. | That event cannot be found by city. | No test: observed only. Ask the Product Owner if it is intended |
 
 ### Checked and working as expected
 
@@ -153,7 +153,7 @@ The first three come from the defects above. The rest are in the story-review ta
 
 1. **Past events:** should a past event be bookable? If not, should the Book button be disabled, or should the API return an error (and which status code)?
 2. **Decimal prices:** should the UI show cents ($12.35 and a total of $37.05), or are whole dollars intended? The backend stores the exact value.
-3. **City filter:** should "Los Angeles" be a filter option, or should the demo concert use a city that the filter offers?
+3. **City filter (observation, no test):** should "Los Angeles" be a filter option, or should the demo concert use a city that the filter offers?
 4. **Guests:** should a visitor be able to book without an account, or should the story say "registered user"?
 5. **Limits and validation:** what are the ticket limits and the rules and error messages for name, email and phone?
 6. **Booking reference:** which format is correct, `EVT-XXXXXX` or a prefix from the event title?
@@ -251,7 +251,7 @@ eventhub-qa-automation/
 ├── data/
 │   ├── testcredentials.json           Test accounts (emails plain, passwords encrypted)
 │   └── selectorAlias/                 Selector strings and routes, one file per page object
-├── docs/test-cases/                   Manual test cases (UI and API)
+├── docs/test-cases/                   Manual test cases: ui/ (bookings, booking-details, cancellation, edge-cases, events) and api/ (bookings, cancellation, edge-cases, events)
 ├── fixtures/
 │   ├── index.ts                       Entry point for UI specs (test, expect, cleanUpTestData)
 │   ├── auth.fixture.ts                Logged-in page per worker account, session reuse
@@ -269,13 +269,13 @@ eventhub-qa-automation/
 │   ├── api/                           API project (same feature folders as the UI project)
 │   │   ├── booking/                     create a booking: confirmation, total, seats, bookings list
 │   │   ├── cancellation/                cancel a booking: seats restored, 404 afterwards
-│   │   ├── events/                      create / edit / delete an event that is booked, decimal and free price
-│   │   └── edgecases/                   booking and event validation, 401 without a token, ownership (security), past event, same event twice
+│   │   ├── events/                      create / edit / delete an event that is booked, past date refused, decimal and free price
+│   │   └── edgecases/                   booking and event validation, 401 without a token, ownership (security), same event twice
 │   └── ui/                            UI project
 │       ├── booking/                     happy paths: book from Home or Events, many tickets, booking details
 │       ├── cancellation/                happy paths: cancel from My Bookings or details, clear all
-│       ├── events/                      admin event management (create, edit, delete) and Events page consistency
-│       └── edgecases/                   limits, validation, security, past event, same event twice, decimal and free price
+│       ├── events/                      admin event management (create, edit, delete, past date refused) and Events page consistency
+│       └── edgecases/                   limits, validation, security, same event twice, decimal and free price
 ├── utils/                             Test data builders, parsing, dates, selector helpers
 ├── playwright.config.ts               Projects (ui, api), workers, retries, reporters
 └── cleanup.config.ts                  Playwright config for the cleanup script
@@ -295,12 +295,12 @@ eventhub-qa-automation/
 
 | AC | UI | API |
 | --- | --- | --- |
-| AC1 create booking and confirmation | `booking/bookFeaturedEventTicket`, `bookFromEventsPage`, `bookMultipleTickets`, `verifyBookingDetails`; `edgecases/bookingFormValidation`, `ticketQuantity`, `bookSameEventTwice`, `bookPastEvent` (xfail); `edgecases/anonymousAccess` | `createBooking`, `createBookingValidation`, `events/bookNewEvent`, `bookSameEventTwice`, `bookPastEvent` (xfail) |
+| AC1 create booking and confirmation | `booking/bookFeaturedEventTicket`, `bookFromEventsPage`, `bookMultipleTickets`, `verifyBookingDetails`; `edgecases/bookingFormValidation`, `ticketQuantity`, `bookSameEventTwice`; `edgecases/anonymousAccess` | `createBooking`, `createBookingValidation`, `events/bookNewEvent`, `bookSameEventTwice` |
 | AC2 total price | `bookMultipleTickets` (2, 4, 10 tickets), `edgecases/freeEvent` (price 0), `decimalPriceEvent` (xfail, UI rounds cents) | `createBooking` (price x quantity), `events/eventPrices` (decimal and free) |
 | AC3 booking in My Bookings | `bookMultipleTickets`, `verifyBookingDetails`, `bookSameEventTwice`, `cancellation/*` | `createBooking` (listed in `GET /bookings`), `bookingOwnership` (not listed for other users) |
 | AC4 cancel | `cancellation/cancelFeaturedEventBooking`, `cancelFromBookingDetails`, `clearAllBookings` | `cancelBooking`, `bookingOwnership` (others cannot cancel) |
 | AC5 same through the API | - | all of `tests/api` (`POST /bookings`, validation, auth, seats, ownership) |
-| Beyond the story | `events/createEvent`, `editEvent`, `deleteEvent`; `edgecases/eventFormValidation`, `events/eventsPageConsistency` (xfail) | `events/editBookedEvent`, `deleteBookedEvent`, `edgecases/createEventValidation` |
+| Beyond the story | `events/createEvent`, `editEvent`, `deleteEvent`; `edgecases/eventFormValidation` | `events/editBookedEvent`, `deleteBookedEvent`, `edgecases/createEventValidation` |
 
 ### Why these tests
 
@@ -309,7 +309,7 @@ eventhub-qa-automation/
 - **Negative and boundary cases are API-first.** They are fast and exact there (0, -1, 11 tickets, missing field, unknown event). The UI covers the same rules once, through the form, because that is what a user sees.
 - **Admin event tests exist because they are test data and a risk.** Events can be created, edited and deleted in the UI, which changes what bookings show. Booking tests need known events, and the shared site has only 3 events, all in the past.
 
-The manual test cases behind these are in [docs/test-cases](docs/test-cases) (UI and API).
+The manual test cases behind these are in [docs/test-cases/ui](docs/test-cases/ui) and [docs/test-cases/api](docs/test-cases/api).
 
 ### UI tests and their API counterparts
 
@@ -326,12 +326,12 @@ The same rule is checked twice on purpose. The API test is fast and exact, so it
 | Ticket quantity limits | `edgecases/ticketQuantity`: starts at 1, minus is disabled at 1, plus stops at 10, and stops at the seats left when fewer than 10 remain. | `createBookingValidation`: quantity 0, -1 and 11 return 400; 10 is accepted; 3 tickets on a 2-seat event return 400 and the seats stay at 2. | The UI stops a user at the limit with the buttons. The API proves the server enforces the limit even when the screen is bypassed. |
 | Form validation | `edgecases/bookingFormValidation`: empty form shows three errors; name ("A", spaces only), email (four bad formats) and phone (9 digits, letters) are rejected; a valid form is accepted. | `createBookingValidation`: a missing `customerEmail`, the four bad emails and two bad phones return 400 and take no seats. | The UI shows the error messages. The API proves the server rejects the same input. The name rules are only covered in the UI, because the API does not define them (see the questions for the Product Owner). |
 | Not logged in or not the owner (security) | `edgecases/anonymousAccess`: a visitor opening `/bookings` is sent to the login page. | `createBookingValidation`: no `Authorization` header returns 401. `bookingOwnership`: another account gets 403 or 404 when it reads or cancels my booking and does not see it in its list. | UI: nobody lands on a page without a session. API: the server refuses the request even if someone calls it directly. Ownership is checked only in the API, because the UI cannot open another user's booking by design. |
-| Past events (defect 1) | `edgecases/bookPastEvent` (`@xfail`): a past event should not be bookable, but the form confirms it. | `edgecases/bookPastEvent` (`@xfail`): `POST /bookings` for a past event should return 4xx, but it returns 201. | Both fail, so the server accepts the booking and the UI does not stop it. Fixing the server rule would fix both. |
+| Past event cannot be created | `events/createPastEvent`: the admin form shows "Must be a future date" and the number of events does not change. | `events/createPastEvent`: `POST /events` with a past date returns 400 about `eventDate` and creates nothing. | Both layers refuse a past date. The UI shows the message, the API proves the server enforces the rule. |
 | Decimal price (defect 2) | `edgecases/decimalPriceEvent` (`@xfail`, 2 tests): an event with price 12.35 shows $12 and a rounded total. | `events/eventPrices`: the event is returned with `"12.35"` and `totalPrice` 37.05 for 3 tickets. Passes. | The API passes and the UI fails, so the rounding is a front-end defect. This is the clearest case for having both layers. |
 | Free event (price 0) | `edgecases/freeEvent`: create an event with price 0, check it shows `$0`, book 2 tickets with total `$0`. | `events/eventPrices`: price 0 is stored, the booking is confirmed with `totalPrice` 0, and the seats drop by 2. | The API proves the backend accepts 0. The UI proves the price and the total are shown and the form can be submitted. |
 | Same event twice | `edgecases/bookSameEventTwice`: two bookings on one event, both in My Bookings with different references. | `edgecases/bookSameEventTwice`: two different ids and references, both listed, seats reduced by 4. | Documents current behaviour (the story is silent). Both layers agree. |
 | Events created and changed by an admin | `events/createEvent`, `events/editEvent`, `events/deleteEvent`, `edgecases/eventFormValidation`: the admin screens (the form, the table, the dialogs). | `events/bookNewEvent`, `editBookedEvent`, `deleteBookedEvent`: what happens to bookings when their event is created, edited or deleted (the list shows the new values, a delete removes the bookings). | The UI tests cover the admin screens. The API tests cover the data effect on bookings, which the admin screens do not show. |
-| Events page filter and demo data (defect 3) | `events/eventsPageConsistency` (`@xfail`): every featured event is in a city the filter offers. | None. | UI only. It is a display and data consistency issue, not a rule of the booking API. |
+| Events page filter and demo data (defect 4) | None: observed only, to be confirmed with the Product Owner. | None. | UI only. It is a display and data consistency issue, not a rule of the booking API. |
 
 ## Key decisions
 

@@ -43,6 +43,11 @@ export function pastIsoDateTime(daysAgo = 30): string {
   return date.toISOString();
 }
 
+/** Local date & time `daysAgo` days in the past (at 12:00) in the format of the admin form: "YYYY-MM-DDTHH:mm". */
+export function pastDateTime(daysAgo = 30): string {
+  return futureDateTime(-daysAgo);
+}
+
 /** Form date & time "2027-03-10T12:00" -> the date as shown in the Manage Events table: "10 Mar 2027". */
 export function tableDate(dateTime: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})T/.exec(dateTime);

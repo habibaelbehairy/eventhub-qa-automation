@@ -1,5 +1,6 @@
 import { test, expect, cleanUpTestData } from '../../../fixtures';
 import { EventFormField } from '../../../page_objects/admin/AdminEventsPage';
+import { pastDateTime } from '../../../utils/dates';
 
 /**
  * Admin > Manage Events — "+ New Event" form content and field validation (UI only).
@@ -99,6 +100,13 @@ test.describe('Event form content and validation', { tag: ['@ui', '@admin', '@ed
   });
 
   // ------------------------------------------------------------------ Date
+  test('Verify date error is shown when the date is in the past', async ({ adminEventsPage }) => {
+    await adminEventsPage.setFieldValue('dateTime', pastDateTime());
+    await adminEventsPage.submitForm();
+    await expect(adminEventsPage.validationError('Must be a future date')).toBeVisible();
+    await adminEventsPage.assertNoEventCreated();
+  });
+
   test('Verify a valid date is accepted', async ({ adminEventsPage }) => {
     await adminEventsPage.setFieldValue('dateTime', '2030-01-15T10:00');
     await adminEventsPage.submitForm();
@@ -131,6 +139,22 @@ test.describe('Event form content and validation', { tag: ['@ui', '@admin', '@ed
   // ------------------------------------------------------------------ Seats
   test('Verify seats error is shown when the number of seats is 0', async ({ adminEventsPage }) => {
     await adminEventsPage.setFieldValue('totalSeats', '0');
+    await adminEventsPage.submitForm();
+    await adminEventsPage.assertInlineError('totalSeats');
+    await adminEventsPage.assertNoEventCreated();
+  });
+
+  test('Verify seats error is shown when the number of seats is negative', async ({ adminEventsPage }) => {
+    await adminEventsPage.setFieldValue('totalSeats', '-5');
+    await adminEventsPage.submitForm();
+    await adminEventsPage.assertInlineError('totalSeats');
+    await adminEventsPage.assertNoEventCreated();
+  });
+
+  // Expected failure (defect 4): the form shows no inline error for a fractional seat count.
+  test('Verify seats error is shown when the number of seats is a decimal', { tag: '@xfail' }, async ({ adminEventsPage }) => {
+    test.fail(true, 'Defect 4: a fractional seat count (1.5) is not rejected by the form');
+    await adminEventsPage.setFieldValue('totalSeats', '1.5');
     await adminEventsPage.submitForm();
     await adminEventsPage.assertInlineError('totalSeats');
     await adminEventsPage.assertNoEventCreated();

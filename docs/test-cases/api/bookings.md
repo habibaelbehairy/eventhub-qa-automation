@@ -20,5 +20,5 @@ Related: [cancellation.md](cancellation.md), [edge-cases.md](edge-cases.md) (val
 | -- | --------- | ----- | -------- |
 | TC-API-01 | Booking is created with a reference (every listed event) | `GET /events` → for each event → `POST /bookings` with `eventId`, `quantity` 2, `customerName`, `customerEmail`, `customerPhone` | Success response. Body has `bookingRef` matching `^[A-Z0-9]+-[A-Z0-9]{6}$`, `status` "confirmed", the same `eventId`, `quantity` and customer details. |
 | TC-API-02 | Total price (AC2) | Book 2 tickets on every listed event | For each event, `totalPrice` = event `price` × 2. |
-| TC-API-03 | Booking appears in the list (AC3) | Book 2 tickets on every listed event, then `GET /bookings` | Each booking is listed with its `id`, `eventId`, `quantity` 2, `status` "confirmed" and an embedded `event` with the same id and title. |
+| TC-API-03 | Booking appears in the list and can be fetched (AC3) | Book 2 tickets on every listed event, then `GET /bookings`, `GET /bookings/ref/{ref}` and `GET /bookings/{id}` | Each response has the booking with its `id`, `bookingRef`, `eventId` and an embedded `event` with the same id and title; the list also shows `quantity` 2 and `status` "confirmed". |
 | TC-API-04 | Seats are reduced | Read `availableSeats`, book 2 tickets on each event, read again | Seats available = before − 2. |

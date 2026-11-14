@@ -20,6 +20,12 @@ test.describe('Edge case: delete an event that has a booking', { tag: ['@api', '
     const listedBooking = (await api.bookings.listBookings()).find((b) => b.bookingRef === booking.bookingRef);
     expect(listedBooking, 'booking is listed before deletion').toBeDefined();
 
+    const byRefBefore = await api.bookings.findBookingByRef(booking.bookingRef);
+    expect(byRefBefore, 'GET bookings/ref/{ref} before deletion').toMatchObject({ id: booking.id, eventId: event.id });
+    expect(byRefBefore!.event).toMatchObject({ id: event.id, title: event.title });
+    const byIdBefore = await api.bookings.getBookingResponse(booking.id);
+    expect(byIdBefore.status(), 'GET bookings/{id} before deletion').toBe(200);
+    expect((await byIdBefore.json()).data).toMatchObject({ id: booking.id, eventId: event.id });
 
     const response = await api.events.removeEvent(event.id);
     expect(response.status(), 'DELETE events/{id}').toBe(200);
@@ -32,5 +38,8 @@ test.describe('Edge case: delete an event that has a booking', { tag: ['@api', '
 
     const listedBookingAfter = (await api.bookings.listBookings()).find((b) => b.bookingRef === booking.bookingRef);
     expect(listedBookingAfter, 'booking is not listed after deletion').toBeUndefined();
+    expect(await api.bookings.findBookingByRef(booking.bookingRef), 'GET bookings/ref/{ref} after deletion').toBeUndefined();
+    const byIdAfter = await api.bookings.getBookingResponse(booking.id);
+    expect(byIdAfter.status(), 'GET bookings/{id} after deletion').toBe(404);
   });
 });

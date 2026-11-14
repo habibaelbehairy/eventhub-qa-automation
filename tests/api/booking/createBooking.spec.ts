@@ -45,8 +45,19 @@ test.describe('POST /bookings - create a booking', { tag: ['@api', '@booking', '
         expect(await api.events.availableSeats(event.id), 'seats go down by the quantity').toBe(seatsBefore - 2);
 
         // Bookings list
+        // Single-booking lookups return the same booking with the booked event
         const byRef = await api.bookings.findBookingByRef(booking.bookingRef);
-        expect(byRef?.id).toBe(booking.id);
+        expect(byRef, 'GET /bookings/ref/{ref} returns the booking').toBeDefined();
+        expect(byRef).toMatchObject({ id: booking.id, bookingRef: booking.bookingRef, eventId: event.id });
+        expect(byRef!.event.id).toBe(event.id);
+        expect(byRef!.event.title).toBe(event.title);
+
+        const byIdResponse = await api.bookings.getBookingResponse(booking.id);
+        expect(byIdResponse.status(), 'GET /bookings/{id}').toBe(200);
+        const byId = (await byIdResponse.json()).data;
+        expect(byId).toMatchObject({ id: booking.id, bookingRef: booking.bookingRef, eventId: event.id });
+        expect(byId.event.id).toBe(event.id);
+        expect(byId.event.title).toBe(event.title);
 
         const listed = (await api.bookings.listBookings()).find((b) => b.bookingRef === booking.bookingRef);
         expect(listed, 'booking is returned by GET /bookings').toBeDefined();

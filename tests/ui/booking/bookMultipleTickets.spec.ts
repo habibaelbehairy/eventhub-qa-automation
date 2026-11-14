@@ -1,7 +1,7 @@
 import { test, expect, cleanUpTestData } from '../../../fixtures';
 import { bookTickets } from '../../../common_steps/bookTickets';
 import { CONCURRENCY_HINT } from '../../../common_steps/expectSeatsOnHome';
-import { EventCard } from '../../../page_objects/components/EventCard';
+import type { EventCard } from '../../../page_objects/components/EventCard';
 import { buildCustomer } from '../../../utils/testData';
 
 /**
@@ -27,6 +27,7 @@ test.describe('Book multiple tickets', { tag: ['@ui', '@booking'] }, () => {
       homePage,
       eventDetailsPage: detailsPage,
       myBookingsPage,
+      api,
       bookings,
     }) => {
       const customer = buildCustomer();
@@ -71,6 +72,19 @@ test.describe('Book multiple tickets', { tag: ['@ui', '@booking'] }, () => {
         customer,
         expectedPrice: eventData.price,
         onBooked: (ref) => bookings.track(ref),
+      });
+
+      await test.step('The booking was saved with the submitted data (checked through the API)', async () => {
+        const saved = await api.bookings.findBookingByRef(bookingRef);
+        expect(saved, 'GET /bookings/ref/{ref} returns the booking').toBeDefined();
+        expect(saved).toMatchObject({
+          quantity,
+          status: 'confirmed',
+          customerName: customer.name,
+          customerEmail: customer.email,
+          customerPhone: customer.phone,
+        });
+        expect(Number(saved!.totalPrice)).toBeCloseTo(expectedTotal, 2);
       });
 
       await test.step(`Available seats drop by at least ${quantity} (after reload)`, async () => {

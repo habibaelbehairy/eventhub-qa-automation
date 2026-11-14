@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker';
-import { CustomerDetails } from '../page_objects/EventDetailsPage';
-import { EventFormData } from '../page_objects/admin/AdminEventsPage';
-import { CreateBookingInput, CreateEventInput } from '../api/EventHubApi';
+import type { CustomerDetails } from '../page_objects/EventDetailsPage';
+import type { EventFormData } from '../page_objects/admin/AdminEventsPage';
+import type { CreateBookingInput, CreateEventInput } from '../api/EventHubApi';
 import { futureDateTime, futureIsoDateTime } from './dates';
 
 /** Random, valid customer details for the booking form. */

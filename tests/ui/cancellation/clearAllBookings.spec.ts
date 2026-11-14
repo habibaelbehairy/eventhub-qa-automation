@@ -1,5 +1,6 @@
 import { test, expect, cleanUpTestData } from '../../../fixtures';
-import { openEventFromHome, OpenedEvent } from '../../../common_steps/openEventFromHome';
+import type { OpenedEvent } from '../../../common_steps/openEventFromHome';
+import { openEventFromHome } from '../../../common_steps/openEventFromHome';
 import { bookTickets } from '../../../common_steps/bookTickets';
 import { expectSeatsOnHome } from '../../../common_steps/expectSeatsOnHome';
 import { buildCustomer } from '../../../utils/testData';
@@ -34,7 +35,7 @@ test.describe('Clear all bookings', { tag: ['@ui', '@cancellation'] }, () => {
         if (titles.length === NUMBER_OF_EVENTS) break;
         if (await card.matches({ minSeats: TICKETS_PER_EVENT })) titles.push((await card.title.innerText()).trim());
       }
-      expect(titles.length, `events with at least ${TICKETS_PER_EVENT} seats`).toBe(NUMBER_OF_EVENTS);
+      expect(titles, `events with at least ${TICKETS_PER_EVENT} seats`).toHaveLength(NUMBER_OF_EVENTS);
       return titles;
     });
 

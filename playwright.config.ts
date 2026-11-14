@@ -5,8 +5,10 @@ const DEFAULT_WORKERS = 4;
 
 /**
  * Projects:
- *  - ui:  browser tests; the auth fixture logs in lazily and caches the session (fixtures/auth.fixture.ts)
- *  - api: REST API tests; no browser, the API client logs its role in once (fixtures/apiOnly.fixture.ts)
+ *  - setup:   logs every role in once before the tests (tests/setup/auth.setup.ts)
+ *  - ui:      browser tests; the auth fixture reuses the saved session and logs in again if it is rejected
+ *  - api:     REST API tests; no browser (fixtures/apiOnly.fixture.ts)
+ *  - cleanup: teardown of setup; runs after ui and api and removes stale data (tests/setup/cleanup.teardown.ts)
  */
 export default defineConfig({
   testDir: './tests',
@@ -35,7 +37,9 @@ export default defineConfig({
   },
 
   projects: [
-    { name: 'ui', testDir: './tests/ui' },
-    { name: 'api', testDir: './tests/api' },
+    { name: 'setup', testDir: './tests/setup', testMatch: /.*\.setup\.ts/, teardown: 'cleanup' },
+    { name: 'cleanup', testDir: './tests/setup', testMatch: /.*\.teardown\.ts/ },
+    { name: 'ui', testDir: './tests/ui', dependencies: ['setup'] },
+    { name: 'api', testDir: './tests/api', dependencies: ['setup'] },
   ],
 });

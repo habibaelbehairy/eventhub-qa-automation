@@ -10,24 +10,32 @@ import { buildApiEvent, buildApiBooking } from '../../../utils/testData';
  */
 test.describe('Edge case: decimal and free event prices', { tag: ['@api', '@booking', '@edgecase'] }, () => {
   test('an event with a decimal price keeps the exact price and total', async ({ api, events, bookings }) => {
-    const event = await api.events.createEvent(buildApiEvent({ price: 12.35 }));
+    const eventResponse = await api.events.postEvent(buildApiEvent({ price: 12.35 }));
+    expect(eventResponse.status).toBe(201);
+    const event = eventResponse.body.data;
     events.track(event.title);
     expect(event.price, 'price returned by POST /events').toBe('12.35');
 
     const listed = (await api.events.listEvents()).find((e) => e.id === event.id);
     expect(listed!.price, 'price returned by GET /events').toBe('12.35');
 
-    const booking = await api.bookings.createBooking(buildApiBooking(event.id, { quantity: 3 }));
+    const response = await api.bookings.postBooking(buildApiBooking(event.id, { quantity: 3 }));
+    expect(response.status).toBe(201);
+    const booking = response.body.data;
     bookings.track(booking.bookingRef);
     expect(Number(booking.totalPrice), 'totalPrice for 3 tickets').toBeCloseTo(37.05, 2);
   });
 
   test('a free event (price 0) can be booked and the total is 0', async ({ api, events, bookings }) => {
-    const event = await api.events.createEvent(buildApiEvent({ price: 0, totalSeats: 20 }));
+    const eventResponse = await api.events.postEvent(buildApiEvent({ price: 0, totalSeats: 20 }));
+    expect(eventResponse.status).toBe(201);
+    const event = eventResponse.body.data;
     events.track(event.title);
     expect(Number(event.price), 'price returned by POST /events').toBe(0);
 
-    const booking = await api.bookings.createBooking(buildApiBooking(event.id, { quantity: 2 }));
+    const response = await api.bookings.postBooking(buildApiBooking(event.id, { quantity: 2 }));
+    expect(response.status).toBe(201);
+    const booking = response.body.data;
     bookings.track(booking.bookingRef);
     expect(booking.status).toBe('confirmed');
     expect(Number(booking.totalPrice), 'totalPrice').toBe(0);

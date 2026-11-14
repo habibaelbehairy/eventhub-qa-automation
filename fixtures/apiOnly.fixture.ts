@@ -1,5 +1,6 @@
 import { test as base } from '@playwright/test';
-import { Role, USER_ROLES, roleForWorker } from '../auth/users';
+import type { Role} from '../auth/users';
+import { USER_ROLES, roleForWorker } from '../auth/users';
 import { EventHubApi } from '../api/EventHubApi';
 import { newApiContext } from '../api/apiSession';
 import {

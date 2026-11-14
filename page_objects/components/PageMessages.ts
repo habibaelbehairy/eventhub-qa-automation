@@ -1,6 +1,7 @@
-import { Page, Locator } from '@playwright/test';
+import type { Page, Locator } from '@playwright/test';
 import S from '../../data/selectorAlias/components/PageMessages';
-import { bindSelectors, BoundSection } from '../../utils/selectorDefinition';
+import type { BoundSection } from '../../utils/selectorDefinition';
+import { bindSelectors } from '../../utils/selectorDefinition';
 
 /** Messages shown anywhere on the page: inline errors, toasts, banners. */
 export class PageMessages {

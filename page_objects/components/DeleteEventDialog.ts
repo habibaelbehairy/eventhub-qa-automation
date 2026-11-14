@@ -1,4 +1,4 @@
-import { Page, Locator } from '@playwright/test';
+import type { Page, Locator } from '@playwright/test';
 import S from '../../data/selectorAlias/components/DeleteEventDialog';
 import { bindSelectors } from '../../utils/selectorDefinition';
 

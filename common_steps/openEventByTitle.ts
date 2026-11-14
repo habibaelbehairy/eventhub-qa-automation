@@ -1,6 +1,6 @@
 import { test } from '@playwright/test';
-import { EventsPage } from '../page_objects/EventsPage';
-import { EventDetailsPage } from '../page_objects/EventDetailsPage';
+import type { EventsPage } from '../page_objects/EventsPage';
+import type { EventDetailsPage } from '../page_objects/EventDetailsPage';
 
 /** Finds an event on the Events page by its (unique) title and opens its details page with "Book Now". */
 export async function openEventByTitle(

@@ -1,7 +1,10 @@
-import { APIRequestContext, APIResponse, expect } from '@playwright/test';
-import { BookingsApi } from './BookingsApi';
+import type { APIRequestContext } from '@playwright/test';
+import { expect } from '@playwright/test';
+import type { ApiResponse } from './ApiResponse';
+import { toApiResponse } from './ApiResponse';
+import type { BookingsApi } from './BookingsApi';
 import { listAll } from './paginate';
-import { ApiEvent, CreateEventInput } from './types';
+import type { ApiEvent, CreateEventInput } from './types';
 
 /**
  * Events endpoints.
@@ -21,8 +24,8 @@ export class EventsApi {
   }
 
   /** Raw GET /events/{id}, so a test can assert a 404 after the event is deleted. */
-  async getEventResponse(eventId: number): Promise<APIResponse> {
-    return this.api.get(`events/${eventId}`);
+  async getEventResponse(eventId: number): Promise<ApiResponse> {
+    return toApiResponse(await this.api.get(`events/${eventId}`));
   }
 
   /** Available seats of an event right now. */
@@ -31,8 +34,8 @@ export class EventsApi {
   }
 
   /** Raw POST /events, so negative tests can assert the status themselves. */
-  async postEvent(input: Partial<CreateEventInput>): Promise<APIResponse> {
-    return this.api.post('events', { data: input });
+  async postEvent(input: Partial<CreateEventInput>): Promise<ApiResponse> {
+    return toApiResponse(await this.api.post('events', { data: input }));
   }
 
   /** Creates an event and returns it (with its id, availableSeats, ...). */
@@ -46,6 +49,11 @@ export class EventsApi {
     return listAll<ApiEvent>(this.api, 'events');
   }
 
+  /** Raw PUT /events/{id} (full update), so a test can assert the status itself. */
+  async putEvent(eventId: number, input: CreateEventInput): Promise<ApiResponse> {
+    return toApiResponse(await this.api.put(`events/${eventId}`, { data: input }));
+  }
+
   /** PUT /events/{id} (full update). Asserts the 200 and returns the updated event. */
   async updateEvent(eventId: number, input: CreateEventInput): Promise<ApiEvent> {
     const response = await this.api.put(`events/${eventId}`, { data: input });
@@ -54,8 +62,8 @@ export class EventsApi {
   }
 
   /** Raw DELETE /events/{id} that does NOT remove its bookings first, to test the backend cascade. */
-  async removeEvent(eventId: number): Promise<APIResponse> {
-    return this.api.delete(`events/${eventId}`);
+  async removeEvent(eventId: number): Promise<ApiResponse> {
+    return toApiResponse(await this.api.delete(`events/${eventId}`));
   }
 
   /** Deletes an event together with the user's bookings on it. 404 = already gone. */

@@ -1,5 +1,6 @@
 import { test, expect } from '../../../fixtures/apiOnly.fixture';
 import { buildApiBooking } from '../../../utils/testData';
+import type { ApiBooking } from '../../../api/types';
 
 /**
  * API — cancel a booking.
@@ -18,22 +19,46 @@ test.describe('DELETE /bookings/{id} - cancel a booking', { tag: ['@api', '@book
         expect(event.availableSeats, 'the event has enough seats').toBeGreaterThanOrEqual(2);
         const seatsBefore = await api.events.availableSeats(event.id);
 
-        const booking = await api.bookings.createBooking(buildApiBooking(event.id, { quantity: 2 }));
+        const bookingResponse = await api.bookings.postBooking(buildApiBooking(event.id, { quantity: 2 }));
+        expect(bookingResponse.status).toBe(201);
+        const booking = bookingResponse.body.data;
         bookings.track(booking.bookingRef);
         expect(await api.events.availableSeats(event.id)).toBe(seatsBefore - 2);
 
+        // Before cancelling: the booking is found by id, by reference and in the bookings list.
+        const byIdResponse = await api.bookings.getBookingResponse(booking.id);
+        expect(byIdResponse.status).toBe(200);
+        expect(byIdResponse.body.data).toMatchObject({ id: booking.id, bookingRef: booking.bookingRef });
+
+        const byRefResponse = await api.bookings.getBookingByRefResponse(booking.bookingRef);
+        expect(byRefResponse.status).toBe(200);
+        expect(byRefResponse.body.data).toMatchObject({ id: booking.id, bookingRef: booking.bookingRef });
+
+        const listBeforeResponse = await api.bookings.getBookingsResponse();
+        expect(listBeforeResponse.status).toBe(200);
+        const listBefore: ApiBooking[] = listBeforeResponse.body.data;
+        expect(listBefore.map((b) => b.bookingRef)).toContain(booking.bookingRef);
+        expect(listBefore.map((b) => b.id)).toContain(booking.id);
+
         const response = await api.bookings.cancelBooking(booking.id);
-        expect(response.status(), 'DELETE bookings/{id}').toBe(200);
-        expect((await response.json()).success).toBe(true);
+        expect(response.status).toBe(200);
+        expect(response.body.success).toBe(true);
 
-        // Seats are given back and the booking is gone from the bookings list.
+        // Seats are given back.
         expect(await api.events.availableSeats(event.id)).toBe(seatsBefore);
-        expect(await api.bookings.findBookingByRef(booking.bookingRef)).toBeUndefined();
-        expect((await api.bookings.listBookings()).map((b) => b.bookingRef)).not.toContain(booking.bookingRef);
 
-        // A cancelled booking cannot be fetched or cancelled again.
-        expect((await api.bookings.getBookingResponse(booking.id)).status(), 'GET bookings/{id} after cancel').toBe(404);
-        expect((await api.bookings.cancelBooking(booking.id)).status(), 'second cancel').toBe(404);
+        // After cancelling: the booking is gone by id, by reference and from the bookings list.
+        expect((await api.bookings.getBookingResponse(booking.id)).status).toBe(404);
+        expect((await api.bookings.getBookingByRefResponse(booking.bookingRef)).status).toBe(404);
+
+        const listAfterResponse = await api.bookings.getBookingsResponse();
+        expect(listAfterResponse.status).toBe(200);
+        const listAfter: ApiBooking[] = listAfterResponse.body.data;
+        expect(listAfter.map((b) => b.bookingRef)).not.toContain(booking.bookingRef);
+        expect(listAfter.map((b) => b.id)).not.toContain(booking.id);
+
+        // A cancelled booking cannot be cancelled again.
+        expect((await api.bookings.cancelBooking(booking.id)).status).toBe(404);
       });
     }
   });

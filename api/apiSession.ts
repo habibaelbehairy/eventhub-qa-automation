@@ -1,8 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { request, APIRequestContext } from '@playwright/test';
+import type { APIRequestContext } from '@playwright/test';
+import { request } from '@playwright/test';
 import { env } from '../config/env';
-import { getUser, isSessionFresh, storageStatePath, TOKEN_STORAGE_KEY, UserRole } from '../auth/users';
+import type { UserRole } from '../auth/users';
+import { getUser, isSessionFresh, storageStatePath, TOKEN_STORAGE_KEY } from '../auth/users';
 
 /**
  * Builds an API request context authorised as the given role. The token is obtained once per role

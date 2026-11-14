@@ -14,4 +14,11 @@ test.describe('Anonymous visitor', { tag: ['@ui', '@booking', '@security'] }, ()
     await expect(loginPage.heading).toBeVisible();
     await expect(myBookingsPage.heading).toBeHidden();
   });
+
+  test('is redirected to the login page when opening an event page', async ({ page, loginPage }) => {
+    await page.goto('/events/1');
+
+    await expect(page).toHaveURL(/\/login/);
+    await expect(loginPage.heading).toBeVisible();
+  });
 });

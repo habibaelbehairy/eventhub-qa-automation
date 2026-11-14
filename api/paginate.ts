@@ -1,4 +1,5 @@
-import { APIRequestContext, expect } from '@playwright/test';
+import type { APIRequestContext} from '@playwright/test';
+import { expect } from '@playwright/test';
 
 /** Reads every page of a paginated list endpoint (max page size is 100). */
 export async function listAll<T>(api: APIRequestContext, path: string): Promise<T[]> {

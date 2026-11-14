@@ -63,9 +63,9 @@ The "+ New Event" form in Admin > Manage Events is filled step by step, each tes
 | TC-EDGE-21  | Free event (`freeEvent`) | Created with price 0; the details page shows $0 per ticket and a $0 total; the booking is confirmed. |
 | TC-EDGE-22  | Decimal price (`decimalPriceEvent`, `@xfail`) | Expected: $12.35 and a total of $37.05. Actual: the UI shows $12 and a rounded total (defect 2, expected failure). |
 
-Creating a past event is checked in [events.md](events.md) (TC-EV-05).
+Creating a past event is checked in the form validation above.
 
 ## Not automated (story review / PO questions)
 
-- Past events can be booked (World Tech Summit 18 Apr 2026, Hollywood Monsoon Night 11 Jul 2026). Not automated: a past event cannot be created in the UI or the API (see [events.md](events.md) TC-EV-05 and [../api/events.md](../api/events.md) TC-API-22), so there is no test data for it. Ask the Product Owner whether this is intended.
+- Past events can be booked (World Tech Summit 18 Apr 2026, Hollywood Monsoon Night 11 Jul 2026). Not automated: a past event cannot be created in the UI or the API (see the form validation above and [../api/events.md](../api/events.md) TC-API-22), so there is no test data for it. Ask the Product Owner whether this is intended.
 - Cancellation rules (deadline, refunds).

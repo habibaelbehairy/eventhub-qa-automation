@@ -1,7 +1,9 @@
-import { Page, Locator, expect } from '@playwright/test';
+import type { Page, Locator} from '@playwright/test';
+import { expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 import S from '../data/selectorAlias/EventDetailsPage';
-import { bindSelectors, BoundSection } from '../utils/selectorDefinition';
+import type { BoundSection } from '../utils/selectorDefinition';
+import { bindSelectors } from '../utils/selectorDefinition';
 import { withParams } from '../utils/selectors';
 import { parseMoney, parseIntFrom } from '../utils/parse';
 

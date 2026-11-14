@@ -1,4 +1,4 @@
-import { Locator } from '@playwright/test';
+import type { Locator } from '@playwright/test';
 import S from '../../data/selectorAlias/components/EventCard';
 import { bindSelectors } from '../../utils/selectorDefinition';
 import { parseMoney, parseIntFrom } from '../../utils/parse';

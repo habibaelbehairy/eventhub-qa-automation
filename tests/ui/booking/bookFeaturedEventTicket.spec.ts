@@ -1,6 +1,6 @@
 import { test, expect, cleanUpTestData } from '../../../fixtures';
 import { bookTickets } from '../../../common_steps/bookTickets';
-import { EventCard } from '../../../page_objects/components/EventCard';
+import type { EventCard } from '../../../page_objects/components/EventCard';
 import { buildCustomer } from '../../../utils/testData';
 import { longDatePatternFromCardDate, parseTime12h } from '../../../utils/dates';
 

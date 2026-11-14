@@ -1,6 +1,7 @@
 import { test, expect } from '../../../fixtures/apiOnly.fixture';
 import { buildApiBooking } from '../../../utils/testData';
 import type { EventHubApi } from '../../../api/EventHubApi';
+import type { ApiBooking } from '../../../api/types';
 
 /**
  * API — book tickets for an event.
@@ -27,7 +28,11 @@ test.describe('POST /bookings - create a booking', { tag: ['@api', '@booking', '
         const seatsBefore = await api.events.availableSeats(event.id);
 
         const input = buildApiBooking(event.id, { quantity: 2 });
-        const booking = await api.bookings.createBooking(input);
+        const response = await api.bookings.postBooking(input);
+
+        expect(response.status).toBe(201);
+
+        const booking: ApiBooking = response.body.data;
         bookings.track(booking.bookingRef);
 
         // Confirmation
@@ -37,6 +42,7 @@ test.describe('POST /bookings - create a booking', { tag: ['@api', '@booking', '
         expect(booking.quantity).toBe(input.quantity);
         expect(booking.customerName).toBe(input.customerName);
         expect(booking.customerEmail).toBe(input.customerEmail);
+        expect(booking.customerPhone).toBe(input.customerPhone);
 
         // Total price
         expect(Number(booking.totalPrice), 'total = price x quantity').toBeCloseTo(Number(event.price) * 2, 2);
@@ -46,20 +52,24 @@ test.describe('POST /bookings - create a booking', { tag: ['@api', '@booking', '
 
         // Bookings list
         // Single-booking lookups return the same booking with the booked event
-        const byRef = await api.bookings.findBookingByRef(booking.bookingRef);
-        expect(byRef, 'GET /bookings/ref/{ref} returns the booking').toBeDefined();
+        const byRefResponse = await api.bookings.getBookingByRefResponse(booking.bookingRef);
+        expect(byRefResponse.status).toBe(200);
+        const byRef = byRefResponse.body.data;
         expect(byRef).toMatchObject({ id: booking.id, bookingRef: booking.bookingRef, eventId: event.id });
-        expect(byRef!.event.id).toBe(event.id);
-        expect(byRef!.event.title).toBe(event.title);
+        expect(byRef.event.id).toBe(event.id);
+        expect(byRef.event.title).toBe(event.title);
 
         const byIdResponse = await api.bookings.getBookingResponse(booking.id);
-        expect(byIdResponse.status(), 'GET /bookings/{id}').toBe(200);
-        const byId = (await byIdResponse.json()).data;
+        expect(byIdResponse.status).toBe(200);
+        const byId = byIdResponse.body.data;
         expect(byId).toMatchObject({ id: booking.id, bookingRef: booking.bookingRef, eventId: event.id });
         expect(byId.event.id).toBe(event.id);
         expect(byId.event.title).toBe(event.title);
 
-        const listed = (await api.bookings.listBookings()).find((b) => b.bookingRef === booking.bookingRef);
+        const listResponse = await api.bookings.getBookingsResponse();
+        expect(listResponse.status).toBe(200);
+        const bookingList: ApiBooking[] = listResponse.body.data;
+        const listed = bookingList.find((b) => b.bookingRef === booking.bookingRef);
         expect(listed, 'booking is returned by GET /bookings').toBeDefined();
         expect(listed).toMatchObject({ id: booking.id, eventId: event.id, quantity: 2, status: 'confirmed' });
         expect(listed!.event.id).toBe(event.id);

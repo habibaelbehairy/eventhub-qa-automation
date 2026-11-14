@@ -1,4 +1,5 @@
-import { Page, Locator, expect } from '@playwright/test';
+import type { Page, Locator} from '@playwright/test';
+import { expect } from '@playwright/test';
 import S from '../data/selectorAlias/LoginPage';
 import { bindSelectors } from '../utils/selectorDefinition';
 

@@ -1,9 +1,11 @@
-import { Page, Locator, expect } from '@playwright/test';
+import type { Page, Locator} from '@playwright/test';
+import { expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 import { BookingCard } from './components/BookingCard';
 import { CancelBookingDialog } from './components/CancelBookingDialog';
 import S from '../data/selectorAlias/MyBookingsPage';
-import { bindSelectors, BoundSection } from '../utils/selectorDefinition';
+import type { BoundSection } from '../utils/selectorDefinition';
+import { bindSelectors } from '../utils/selectorDefinition';
 
 /** "My Bookings" page "/bookings" — the logged-in user's bookings. */
 export class MyBookingsPage extends BasePage {

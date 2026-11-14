@@ -7,8 +7,6 @@
 | Automated in | `tests/ui/cancellation/cancelFeaturedEventBooking.spec.ts`, `tests/ui/cancellation/cancelFromBookingDetails.spec.ts`, `tests/ui/cancellation/clearAllBookings.spec.ts` |
 | Test data    | Bookings are made on existing events and cancelled in the test. If a test stops early, the `bookings` cleanup fixture deletes what is left through the API. |
 
-Cancelling from the Booking Details page is in [booking-details.md](booking-details.md).
-
 Each spec file reuses one browser window and one login (the auth fixture); the window is closed after the file.
 Seat checks compare the Home card before booking with the Home card after cancelling. Another user
 on the shared environment can change the count at the same moment, and the failure message says so.

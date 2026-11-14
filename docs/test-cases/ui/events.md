@@ -25,7 +25,8 @@ UI only: events are created, edited and deleted in Admin > Manage Events. Events
 | TC-EV-02  | Create an event (`createEvent`) | The table row shows the entered values; the event is listed on the Events page with the right category, city and seats. |
 | TC-EV-03  | Edit a booked event (`editEvent`) | Event details show the created event. Booking details before the edit show the original event; after changing title, city, price and seats, the booking details show the edited event and stay "confirmed" with the same tickets. |
 | TC-EV-04  | Delete an event with a booking (`deleteEvent`) | Cancel in the delete dialog keeps the event; Delete event removes it from the table and the booking disappears from My Bookings. |
-| TC-EV-05  | A past event cannot be created (`createPastEvent`) | Date in the past → "Must be a future date"; the number of events is unchanged. |
+
+A past event cannot be created: the form shows "Must be a future date" and no event is made (checked in `eventFormValidation`, see [edge-cases.md](edge-cases.md)).
 
 Form validation, free events and decimal prices are in [edge-cases.md](edge-cases.md).
 

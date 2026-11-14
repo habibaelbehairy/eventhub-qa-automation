@@ -1,5 +1,6 @@
 import { test as base, expect, type BrowserContext, type Page } from '@playwright/test';
-import { Role, UserRole, getUser, isSessionFresh, roleForWorker, storageStatePath } from '../auth/users';
+import type { Role, UserRole} from '../auth/users';
+import { getUser, isSessionFresh, roleForWorker, storageStatePath } from '../auth/users';
 import { LoginPage } from '../page_objects/LoginPage';
 
 export interface AuthFixtures {

@@ -14,6 +14,8 @@ export interface ApiEvent {
   availableSeats: number;
   isStatic: boolean;
   userId: number | null;
+  /** ISO timestamp set by the backend. */
+  createdAt: string;
 }
 
 export interface ApiBooking {
@@ -29,6 +31,8 @@ export interface ApiBooking {
   status: 'confirmed' | 'cancelled';
   /** GET /bookings embeds the full event of each booking. */
   event: ApiEvent;
+  /** ISO timestamp set by the backend. */
+  createdAt: string;
 }
 
 /** Body of POST /bookings (see CreateBookingInput in the API docs). */

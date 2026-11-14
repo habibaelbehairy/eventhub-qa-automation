@@ -1,8 +1,11 @@
-import { Page, Locator, expect } from '@playwright/test';
+import type { Page, Locator} from '@playwright/test';
+import { expect } from '@playwright/test';
 import { BasePage } from './BasePage';
-import { EventCard, EventCardCriteria } from './components/EventCard';
+import type { EventCardCriteria } from './components/EventCard';
+import { EventCard } from './components/EventCard';
 import S from '../data/selectorAlias/EventsPage';
-import { bindSelectors, BoundSection } from '../utils/selectorDefinition';
+import type { BoundSection } from '../utils/selectorDefinition';
+import { bindSelectors } from '../utils/selectorDefinition';
 
 /**
  * Event listing "/events" with search and filters.

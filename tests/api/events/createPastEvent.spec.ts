@@ -14,8 +14,8 @@ test.describe('Create an event in the past', { tag: ['@api', '@events', '@edgeca
     // buildApiEvent() uses futureIsoDateTime() by default, so we override it with a past date.
     const response = await api.events.postEvent(buildApiEvent({ eventDate: pastIsoDateTime() }));
 
-    expect(response.status(), 'POST events with a past date').toBe(400);
-    expect(JSON.stringify(await response.json())).toContain('eventDate');
-    expect((await api.events.listEvents()).length, 'no event was created').toBe(before);
+    expect(response.status).toBe(400);
+    expect(JSON.stringify(response.body)).toContain('eventDate');
+    expect((await api.events.listEvents()), 'no event was created').toHaveLength(before);
   });
 });

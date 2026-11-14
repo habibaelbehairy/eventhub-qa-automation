@@ -1,4 +1,5 @@
-import { APIRequestContext, expect } from '@playwright/test';
+import type { APIRequestContext} from '@playwright/test';
+import { expect } from '@playwright/test';
 import { BookingsApi } from './BookingsApi';
 import { EventsApi } from './EventsApi';
 
@@ -32,10 +33,17 @@ export class EventHubApi {
     return user.userId ?? user.id;
   }
 
-  /** Removes ALL bookings and ALL events created by this account (never the site's demo events). */
-  async cleanupAccount(): Promise<{ bookings: number; events: number }> {
-    const bookings = await this.bookings.listBookings();
+  /**
+   * Removes the bookings and events created by this account (never the site's demo events).
+   * With `olderThanMs` only items created longer ago than that are removed, so a run that is still
+   * in progress on the same account is left alone. Default 0 = everything.
+   */
+  async cleanupAccount(olderThanMs = 0): Promise<{ bookings: number; events: number }> {
+    const isOldEnough = (item: { createdAt: string }) => Date.now() - Date.parse(item.createdAt) >= olderThanMs;
+    const bookings = (await this.bookings.listBookings()).filter(isOldEnough);
     await Promise.all(bookings.map((booking) => this.bookings.deleteBooking(booking.id)));
-    return { bookings: bookings.length, events: await this.events.deleteOwnEvents() };
+    const events = (await this.events.listOwnEvents()).filter(isOldEnough);
+    await Promise.all(events.map((event) => this.events.deleteEvent(event.id)));
+    return { bookings: bookings.length, events: events.length };
   }
 }

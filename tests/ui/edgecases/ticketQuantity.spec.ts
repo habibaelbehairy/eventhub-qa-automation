@@ -35,6 +35,16 @@ test.describe('Ticket quantity edge cases', { tag: ['@ui', '@edge'] }, () => {
     });
   });
 
+  test('the order total updates as the quantity changes', async ({ page, eventDetailsPage: detailsPage }) => {
+    await openEventFromHome(page, { minSeats: 4 });
+    const price = await detailsPage.pricePerTicketValue();
+
+    for (const quantity of [1, 4, 2]) {
+      await detailsPage.setQuantity(quantity);
+      expect(await detailsPage.totalValue(), `total for ${quantity} ticket(s)`).toBeCloseTo(price * quantity, 2);
+    }
+  });
+
   test('when fewer than 10 seats are left, the maximum is the number of seats left', async ({ page, eventDetailsPage: detailsPage }) => {
     const max = detailsPage.props.maxTicketsPerBooking;
     // Depends on live data (e.g. World Tech Summit has had 8 seats left): skip if no such event exists.

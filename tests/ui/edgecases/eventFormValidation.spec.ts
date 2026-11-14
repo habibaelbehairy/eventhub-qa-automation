@@ -1,5 +1,5 @@
 import { test, expect, cleanUpTestData } from '../../../fixtures';
-import { EventFormField } from '../../../page_objects/admin/AdminEventsPage';
+import type { EventFormField } from '../../../page_objects/admin/AdminEventsPage';
 import { pastDateTime } from '../../../utils/dates';
 
 /**

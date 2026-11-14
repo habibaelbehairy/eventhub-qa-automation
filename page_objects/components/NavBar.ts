@@ -1,6 +1,7 @@
-import { Page, Locator } from '@playwright/test';
+import type { Page, Locator } from '@playwright/test';
 import S from '../../data/selectorAlias/components/NavBar';
-import { bindSelectors, BoundSection } from '../../utils/selectorDefinition';
+import type { BoundSection } from '../../utils/selectorDefinition';
+import { bindSelectors } from '../../utils/selectorDefinition';
 
 /** Top navigation bar shown on every page once logged in. */
 export class NavBar {

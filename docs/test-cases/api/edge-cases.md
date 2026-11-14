@@ -28,7 +28,7 @@
 | ID | Test case | Steps | Expected |
 | -- | --------- | ----- | -------- |
 | TC-API-18a | The owner can read their own booking (positive control) | Account A creates an event and books 1 ticket → A calls `GET /bookings/{id}`, `GET /bookings/ref/{ref}` and `GET /bookings` | Both reads return 200 with the same booking and it is in A's list. |
-| TC-API-18 | Another user's booking is protected | Account A creates an event and books 1 ticket → account B calls `GET /bookings/{id}`, `GET /bookings/ref/{ref}`, `GET /bookings` and `DELETE /bookings/{id}` | B gets 403 or 404 on the id, reference and cancel calls, and the booking is not in B's list. For A the booking is still "confirmed" and the seat is still taken. |
+| TC-API-18 | Another user's booking is protected | Account A creates an event and books 1 ticket → account B calls `GET /bookings/{id}`, `GET /bookings/ref/{ref}`, `GET /bookings` and `DELETE /bookings/{id}` | B gets 403 on the id and reference reads and 404 on the cancel call, and the booking is not in B's list. For A the booking is still "confirmed" and the seat is still taken. |
 
 ## Same event twice: `bookSameEventTwice.spec.ts`
 

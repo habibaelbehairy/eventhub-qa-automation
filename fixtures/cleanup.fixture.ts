@@ -2,7 +2,7 @@ import { test as base } from '@playwright/test';
 import { apiTest } from './api.fixture';
 import { EventHubApi } from '../api/EventHubApi';
 import { newApiContext } from '../api/apiSession';
-import { Role } from '../auth/users';
+import type { Role } from '../auth/users';
 
 /** Collects the bookings a test makes so they can be deleted after the test. */
 export class BookingTracker {

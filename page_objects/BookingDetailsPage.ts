@@ -1,8 +1,10 @@
-import { Page, Locator, expect } from '@playwright/test';
+import type { Page, Locator} from '@playwright/test';
+import { expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 import { CancelBookingDialog } from './components/CancelBookingDialog';
 import S from '../data/selectorAlias/BookingDetailsPage';
-import { bindSelectors, BoundSection } from '../utils/selectorDefinition';
+import type { BoundSection } from '../utils/selectorDefinition';
+import { bindSelectors } from '../utils/selectorDefinition';
 import { withParams } from '../utils/selectors';
 import { parseMoney } from '../utils/parse';
 

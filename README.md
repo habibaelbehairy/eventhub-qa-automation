@@ -59,7 +59,7 @@ Optional `.env`: `BASE_URL`, `API_BASE_URL`, `HEADLESS=false`, `SLOW_MO=500` (wa
 
 **Parallel runs.** Each worker runs as its own account (worker 0 = `primaryUser`, worker 1 = `secondaryUser`, ...), so the default is 4 workers, one per account. Use `$env:WORKERS=1` for a serial run. Do not run the `ui` and `api` projects in two terminals at the same time, because they would share the accounts. Tests inside one spec file always run in order. A failed test is retried once; a test that passes on the retry is reported as flaky.
 
-**Expected failures.** Three tests document product defects and are marked `test.fail(...)` with the `@xfail` tag. The report shows them as passed (they fail as expected), so a normal run is green. If one of them starts to really pass, Playwright reports it as a failure, which means the bug was fixed and the marker can be removed. List them with `npm run test:xfail` (or `npx playwright test --grep "@xfail"`; quote it in PowerShell). Each one carries its reason in the report: the HTML report shows a `fail` annotation with the defect description on the test. They are:
+**Expected failures.** Three tests document product defects and are marked `test.fail(...)` with the `@xfail` tag. The report shows them as passed (they fail as expected), so a normal run is green. At the end of every run the terminal (and the CI log) prints a line such as `Known defects: 3 of the 95 passed tests are expected failures` with their names (`reporters/expectedFailuresReporter.ts`). If one of them starts to really pass, Playwright reports it as a failure, which means the bug was fixed and the marker can be removed. List them with `npm run test:xfail` (or `npx playwright test --grep "@xfail"`; quote it in PowerShell). Each one carries its reason in the report: the HTML report shows a `fail` annotation with the defect description on the test. They are:
 
 | Defect | Test |
 | --- | --- |
@@ -284,6 +284,8 @@ eventhub-qa-automation/
 ├── page_objects/                      Locators and actions per page
 │   ├── components/                      NavBar, EventCard, BookingCard, dialogs, messages
 │   └── admin/                           Manage Events / admin bookings
+├── reporters/
+│   └── expectedFailuresReporter.ts    Prints the number and names of expected failures (@xfail) after each run
 ├── scripts/
 │   ├── cleanup.spec.ts                `npm run cleanup`: removes data left by an interrupted run
 │   └── credentials.ts                 `credentials:encrypt` / `credentials:decrypt` command line

@@ -20,7 +20,7 @@ export default defineConfig({
   workers: Number(process.env.WORKERS ?? DEFAULT_WORKERS),
   retries: 1,
   forbidOnly: env.isCI,
-  reporter: [['list'], ['html', { open: 'never' }]],
+  reporter: [['list'], ['html', { open: 'never' }], ['./reporters/expectedFailuresReporter.ts']],
 
   use: {
     ...devices['Desktop Chrome'],

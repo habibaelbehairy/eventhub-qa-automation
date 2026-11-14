@@ -32,46 +32,65 @@ Playwright + TypeScript UI and API automation for story **US-114 "Book tickets f
 
 ## Quick start
 
+Needs Node 24 and the passphrase for the credentials (see [Credentials for reviewers](#credentials-for-reviewers)).
+
+**1. Install**
+
 ```powershell
 npm ci
 npx playwright install chromium
-$env:CREDENTIALS_KEY="<passphrase>"   # decrypts the passwords in data/testcredentials.json (or put CREDENTIALS_KEY=... in .env)
-npm test                          # everything (ui + api)
-npm run test:ui                   # ui project only
-npm run test:api                  # api project only
-npm run test:xfail                # only the expected failures (known defects)
-npm run typecheck
-npm run lint                        # ESLint (typescript-eslint and the Playwright plugin)
-npm run lint:fix                   # same, and fixes what can be fixed
-npm run verify                     # typecheck + lint, run this before a commit
-npm run report                    # open the HTML report
 ```
 
-Optional `.env`: `BASE_URL`, `API_BASE_URL`, `HEADLESS=false`, `SLOW_MO=500` (watch the flow locally).
+**2. Set the passphrase** (it decrypts the passwords in `data/testcredentials.json`; or put `CREDENTIALS_KEY=...` in `.env`)
+
+```powershell
+$env:CREDENTIALS_KEY="<passphrase>"
+```
+
+**3. Run**
+
+```powershell
+npm test
+npm run report
+```
+
+`npm test` runs everything (UI and API) and `npm run report` opens the HTML report.
+
+### Commands
+
+| Command | What it does |
+| --- | --- |
+| `npm test` | Everything: setup, `ui`, `api`, cleanup |
+| `npm run test:ui` / `npm run test:api` | One project only |
+| `npm run test:xfail` | Only the expected failures (known defects) |
+| `npm run report` | Open the HTML report |
+| `npm run typecheck` | TypeScript check |
+| `npm run lint` / `npm run lint:fix` | ESLint (typescript-eslint and the Playwright plugin), with or without fixes |
+| `npm run verify` | Typecheck and lint, run this before a commit |
+| `npm run cleanup` | Delete everything on the test accounts |
+
+Optional `.env` values: `BASE_URL`, `API_BASE_URL`, `WORKERS`, `HEADLESS=false`, `SLOW_MO=500` (watch the flow locally).
 
 **Windows PowerShell 5.1:** the console may print `Γ£ô` instead of the check mark in the test list. That is only the console encoding; run `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8` once per session (or use Windows Terminal or PowerShell 7).
 
-**Credentials.** Four throwaway test accounts on the public EventHub site (roles `primaryUser`, `secondaryUser`, `thirdUser`, `fourthUser`) are in [data/testcredentials.json](data/testcredentials.json). The emails are readable; each password is encrypted as `<iv>:<data>:<tag>` (AES-256-GCM, key derived from a passphrase). The passphrase is shared separately, not in the repository.
+### Working with the credentials
 
-- **Run the tests:** set the passphrase, then run as usual. The framework decrypts the passwords in memory.
-  ```powershell
-  $env:CREDENTIALS_KEY="<passphrase>"
-  npm test
-  ```
-- **Decrypt a password** to see it:
-  ```powershell
-  npm run credentials:decrypt -- "<iv>:<data>:<tag>"
-  ```
-- **Encrypt a new password** and paste the printed value into the JSON:
-  ```powershell
-  npm run credentials:encrypt -- "MyPassword1."
-  ```
-  A password written as plain text also works, and needs no passphrase.
-- **CI:** add the passphrase as the repository secret `CREDENTIALS_KEY`.
+Four throwaway test accounts on the public EventHub site (roles `primaryUser`, `secondaryUser`, `thirdUser`, `fourthUser`) are in [data/testcredentials.json](data/testcredentials.json). The emails are readable; each password is encrypted as `<iv>:<data>:<tag>` (AES-256-GCM, key derived from a passphrase). The passphrase is not in the code.
 
-**Parallel runs.** Each worker runs as its own account (worker 0 = `primaryUser`, worker 1 = `secondaryUser`, ...), so the default is 4 workers, one per account. Use `$env:WORKERS=1` for a serial run. Do not run the `ui` and `api` projects in two terminals at the same time, because they would share the accounts. Tests inside one spec file always run in order. A failed test is retried once; a test that passes on the retry is reported as flaky.
+| I want to | Do this |
+| --- | --- |
+| Run the tests | Set `CREDENTIALS_KEY`, then `npm test`. The framework decrypts the passwords in memory. |
+| Decrypt a password | `npm run credentials:decrypt -- "<iv>:<data>:<tag>"` |
+| Encrypt a new password | `npm run credentials:encrypt -- "MyPassword1."`, then paste the printed value into the JSON. A plain-text password also works and needs no passphrase. |
+| Run in CI | Add the passphrase as the repository secret `CREDENTIALS_KEY`. |
 
-**Expected failures.** Two tests document product defects and are marked `test.fail(...)` with the `@xfail` tag. The report shows them as passed (they fail as expected), so a normal run is green. If one of them starts to really pass, Playwright reports it as a failure, which means the bug was fixed and the marker can be removed. List them with `npm run test:xfail` (or `npx playwright test --grep "@xfail"`; quote it in PowerShell). Each one carries its reason in the report: the HTML report shows a `fail` annotation with the defect description on the test. They are:
+### Parallel runs
+
+Each worker runs as its own account (worker 0 = `primaryUser`, worker 1 = `secondaryUser`, ...), so the default is 4 workers, one per account. Use `$env:WORKERS=1` for a serial run. Do not run the `ui` and `api` projects in two terminals at the same time, because they would share the accounts. Tests inside one spec file always run in order. A failed test is retried once; a test that passes on the retry is reported as flaky.
+
+### Expected failures and tags
+
+Two tests document product defects and are marked `test.fail(...)` with the `@xfail` tag. The report shows them as passed (they fail as expected), so a normal run is green. If one of them starts to really pass, Playwright reports it as a failure, which means the bug was fixed and the marker can be removed. List them with `npm run test:xfail` (or `npx playwright test --grep "@xfail"`; quote it in PowerShell). Each one carries its reason in the report: the HTML report shows a `fail` annotation with the defect description on the test. They are:
 
 | Defect | Test |
 | --- | --- |
@@ -138,8 +157,8 @@ A version the team could test without guessing (every sentence maps to a questio
 | Q-16 | Payment | Is payment out of scope for this story? Is a booking "confirmed" without payment? **Why it matters:** The details page has a payment block, but there is no payment step. |
 | Q-17 | Non-functional | Are there accessibility, mobile or performance criteria for booking? **Why it matters:** Not covered today (see "What I would do with more time"). |
 | Q-18 | Seat counter | Should the seat count on the event page update right after a booking? **Why it matters:** Tests read seat counts after a reload. |
-| Q-19 | Quantity type | Should the API reject a quantity sent as a string? **Why it matters:** Not tested. |
-| Q-20 | Clear all bookings | Should the button be hidden or disabled when there are no bookings? **Why it matters:** Not tested. |
+| Q-19 | Quantity type | Should the API reject a quantity sent as a string? **Why it matters:** Today `"quantity": "2"` is accepted (defect 7). Without a rule, a client that sends the wrong type works by accident, and a later stricter API would break it. |
+| Q-20 | Clear all bookings | Should the button be hidden or disabled when there are no bookings? **Why it matters:** Today the button is enabled with nothing to clear (defect 6), and the API answers 200 "0 booking(s) cleared". The Product Owner decides whether that is acceptable or an error state. |
 | Q-21 | Access control | Why does the API answer 403 in one case and 404 in another? Reading another user's booking by id or reference gives 403, cancelling it gives 404, and booking an event that another user created gives 404 (as if it did not exist). Should all three answer the same, and which one (404 so the API does not reveal that the resource exists, or 403)? **Why it matters:** The tests assert exactly 403 on the reads and 404 on the cancel and on the foreign event, so they must change if the rule changes. |
 
 ## 2. Defects and observations

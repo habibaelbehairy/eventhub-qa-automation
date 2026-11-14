@@ -58,7 +58,7 @@ export class EventHubApi {
   /** Removes ALL bookings and ALL events created by this account (never the site's demo events). */
   async cleanupAccount(): Promise<{ bookings: number; events: number }> {
     const bookings = await this.bookings.listBookings();
-    for (const booking of bookings) await this.bookings.deleteBooking(booking.id);
+    await Promise.all(bookings.map((booking) => this.bookings.deleteBooking(booking.id)));
     return { bookings: bookings.length, events: await this.events.deleteOwnEvents() };
   }
 }

@@ -110,7 +110,7 @@ export class EventsPage extends BasePage {
       return;
     }
     await expect(this.noEventsMessage).toBeHidden();
-    for (const card of cards) await check(card);
+    await Promise.all(cards.map((card) => check(card)));
   }
 
   /** Opens the event details page via the card's "Book Now" link. */

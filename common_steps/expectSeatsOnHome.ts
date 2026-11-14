@@ -17,11 +17,13 @@ export async function expectSeatsOnHome(page: Page, events: { title: string; sea
     const homePage = new HomePage(page);
     await homePage.nav.goToHome();
     await homePage.waitForLoaded();
-    for (const event of events) {
-      const seatsNow = await homePage.eventCard(event.title).seatsValue();
-      expect(seatsNow, `Seats on "${event.title}" are ${seatsNow}, expected ${event.seats}. ${CONCURRENCY_HINT}`).toBe(
-        event.seats,
-      );
-    }
+    await Promise.all(
+      events.map(async (event) => {
+        const seatsNow = await homePage.eventCard(event.title).seatsValue();
+        expect(seatsNow, `Seats on "${event.title}" are ${seatsNow}, expected ${event.seats}. ${CONCURRENCY_HINT}`).toBe(
+          event.seats,
+        );
+      }),
+    );
   });
 }

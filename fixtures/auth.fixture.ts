@@ -72,9 +72,12 @@ export const authTest = base.extend<AuthFixtures, { fileSession: FileSession }>(
     const { context, page } = fileSession as Required<FileSession>;
 
     // Reset between tests: close tabs a previous test may have left open.
-    for (const other of context.pages()) {
-      if (other !== page) await other.close();
-    }
+    await Promise.all(
+      context
+        .pages()
+        .filter((other) => other !== page)
+        .map((other) => other.close()),
+    );
 
     // A new window is blank: open the home page once. After that the page is never reloaded between
     // tests; each test navigates from wherever the previous one left the window.

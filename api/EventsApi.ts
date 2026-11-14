@@ -74,7 +74,7 @@ export class EventsApi {
   /** Deletes every event created by this account. Returns how many were deleted. */
   async deleteOwnEvents(): Promise<number> {
     const events = await this.listOwnEvents();
-    for (const event of events) await this.deleteEvent(event.id);
+    await Promise.all(events.map((event) => this.deleteEvent(event.id)));
     return events.length;
   }
 }

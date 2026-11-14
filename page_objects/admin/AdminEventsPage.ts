@@ -166,7 +166,7 @@ export class AdminEventsPage extends BasePage {
     this.totalBeforeSubmit = await this.totalEvents();
     await this.addEventButton.click();
     const messages = Object.values(this.props.messages).map((message) => this.validationError(message));
-    await expect(messages.reduce((all, one) => all.or(one)).first()).toBeVisible();
+    await expect(messages.slice(1).reduce((all, one) => all.or(one), messages[0]).first()).toBeVisible();
   }
 
   /** The field's inline error (text from props.messages) is shown. */
@@ -222,13 +222,18 @@ export class AdminEventsPage extends BasePage {
   async deleteAllOwnEvents(): Promise<number> {
     const deleteButtons = this.eventRows.locator(S.sections.eventsTable.elements.deleteButton);
     const total = await deleteButtons.count();
-    for (let remaining = total; remaining > 0; remaining--) {
+
+    const deleteRecursively = async (remaining: number): Promise<void> => {
+      if (remaining <= 0) return;
       await deleteButtons.first().click();
       await expect(this.deleteDialog.root).toBeVisible();
       await this.deleteDialog.confirm();
       await expect(this.deleteDialog.root).toBeHidden();
       await expect(deleteButtons).toHaveCount(remaining - 1);
-    }
+      await deleteRecursively(remaining - 1);
+    };
+
+    await deleteRecursively(total);
     return total;
   }
 

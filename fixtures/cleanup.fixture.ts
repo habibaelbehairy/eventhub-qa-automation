@@ -67,7 +67,7 @@ export async function deleteTrackedBookings(role: Role, tracker: BookingTracker)
     const context = await newApiContext(role);
     try {
       const api = new EventHubApi(context);
-      for (const ref of tracker.tracked) await api.deleteBookingByRef(ref);
+      await Promise.all(tracker.tracked.map((ref) => api.deleteBookingByRef(ref)));
     } finally {
       await context.dispose();
     }
@@ -81,7 +81,7 @@ export async function deleteTrackedEvents(role: Role, tracker: EventTracker): Pr
     const context = await newApiContext(role);
     try {
       const api = new EventHubApi(context);
-      for (const title of tracker.tracked) await api.deleteOwnEventsByTitle(title);
+      await Promise.all(tracker.tracked.map((title) => api.deleteOwnEventsByTitle(title)));
     } finally {
       await context.dispose();
     }

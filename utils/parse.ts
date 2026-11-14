@@ -5,9 +5,9 @@ export function parseMoney(text: string): number {
   return value;
 }
 
-/** First integer in a string: "🎫 2 tickets" -> 2 ; "#54761" -> 54761 */
+/** First integer in a string: "2 tickets" -> 2 ; "#54761" -> 54761 */
 export function parseIntFrom(text: string): number {
-  const match = text.match(/\d+/);
+  const match = /\d+/.exec(text);
   if (!match) throw new Error(`No number found in "${text}"`);
   return Number(match[0]);
 }

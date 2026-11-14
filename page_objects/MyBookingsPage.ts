@@ -47,12 +47,16 @@ export class MyBookingsPage extends BasePage {
   async cancelAllBookingsForEvent(eventTitle: string): Promise<void> {
     const cards = this.bookingCardsForEvent(eventTitle);
     const total = await cards.count();
-    for (let remaining = total; remaining > 0; remaining--) {
+    const cancelNext = async (remaining: number): Promise<void> => {
+      if (remaining <= 0) return;
       await new BookingCard(cards.first()).clickCancel();
       await this.cancelDialog.confirm();
       await expect(this.cancelDialog.root).toBeHidden();
       await expect(cards).toHaveCount(remaining - 1);
-    }
+      await cancelNext(remaining - 1);
+    };
+
+    await cancelNext(total);
   }
 
   /** Cancels a booking: Cancel Booking -> "Yes, cancel it". */

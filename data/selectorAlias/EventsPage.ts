@@ -24,7 +24,7 @@ export default defineSelectors({
     categoryFilter: {
       selector: 'select:has(option:text-is("All Categories"))',
       elements: {
-        // Options carry an emoji ("🎵 Concert"), so match by contained text.
+        // Options carry an emoji ("Concert"), so match by contained text.
         optionByName: 'option:has-text("{category}")',
       },
     },

@@ -48,12 +48,3 @@ Clear the pre-filled filters of `GET /events` or the list comes back empty.
 | TC-API-15 | Book a newly created event (`bookNewEvent`) | Create an event with 20 seats → check it is listed → book 2 | Event listed with 20 seats; booking "confirmed"; event then shows 18 seats; booking listed with the right `eventId`. |
 | TC-API-16 | Edit an event that has a booking (`editBookedEvent`) | Create event → book 2 → `PUT /events/{id}` (new title, city, category, price 75) | Events list shows the new values. The booking is still listed and its embedded `event` shows the new values. |
 | TC-API-17 | Delete an event that has a booking (`deleteBookedEvent`) | Create event → book 2 → `DELETE /events/{id}` | 200. The event is not listed and `GET /events/{id}` returns 404. The booking is also gone (cascade delete). |
-
-## Not covered (ideas for later)
-
-| Idea | Reason |
-| ---- | ------ |
-| Invalid email or phone formats | The rules are not defined in the story (see the README story review). |
-| Booking the same event twice with the same details | No duplicate rule is defined. |
-| Booking another user's booking id (`DELETE /bookings/{id}` as a different user) | Needs two accounts in one test; planned as a security test. |
-| Concurrent booking of the last seats | Hard to make reliable on a shared environment. |

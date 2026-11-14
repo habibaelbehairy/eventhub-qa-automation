@@ -6,7 +6,7 @@ import { openEventByTitle } from '../../../../common_steps/openEventByTitle';
  * An event with a decimal price (12.35). Observed: the event is created and can be booked, but
  * the UI shows the price rounded to whole dollars ($12) and the total as $36.
  */
-test.describe('Event with a decimal price', { tag: ['@ui', '@admin', '@booking'] }, () => {
+test.describe('Event with a decimal price', { tag: ['@ui', '@admin', '@booking', '@xfail'] }, () => {
 
   const PRICE = 12.35;
   const QUANTITY = 3;

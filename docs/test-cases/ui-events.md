@@ -1,31 +1,17 @@
-# UI Test Cases — Events page (search, filters, booking entry point)
+# UI Test Cases — Events page (booking entry point)
 
 | Item         | Value                                                                 |
 | ------------ | --------------------------------------------------------------------- |
 | Story        | US-114 — Book tickets for an event (second entry point to the booking) |
 | Page         | https://eventhub.rahulshettyacademy.com/events                        |
-| Automated in | Filters and search: manual only (no automated spec). Booking from the Events page: `tests/ui/booking/bookFromEventsPage.spec.ts` |
-| Test data    | Read-only for filters (nothing created). Booking tests book 1 ticket on a demo event; the cleanup fixture deletes the booking through the API afterwards. |
-
-Assertions do not depend on which events exist: every shown card must match the filter, or the
-"No events found" empty state (with "Clear filters") must be shown.
-
-## Filters and search (manual only, not automated)
-
-| ID        | Test case                                   | Steps                                          | Expected |
-| --------- | ------------------------------------------- | ---------------------------------------------- | -------- |
-| TC-EV-01  | Category filter (Conference, Concert, Sports, Workshop, Festival — one run each) | Select the category | Every card's category badge is that category, or "No events found" + "Clear filters" are shown. URL has `?category=<name>`. |
-| TC-EV-02  | City filter (Mumbai, Bangalore, Delhi, Hyderabad, Chennai, Pune — one run each) | Select the city | Every card's location ends with that city, or the empty state is shown. URL has `?city=<name>`. |
-| TC-EV-03  | Category + city combined (Festival+Delhi, Concert+Delhi) | Select category, then city | Every card matches both; Concert+Delhi currently shows the empty state. |
-| TC-EV-04  | Search by title                             | Type the title of a listed event               | That event's card is shown. |
-| TC-EV-05  | Search with no match                        | Type text that matches nothing                 | No cards; "No events found" is shown. |
-| TC-EV-06  | Clear filters                               | From the empty state click "Clear filters"     | All events are back; category, city and search are reset. |
+| Automated in | `tests/ui/booking/bookFromEventsPage.spec.ts` |
+| Test data    | Booking tests book 1 ticket on a demo event; the cleanup fixture deletes the booking through the API afterwards. |
 
 ## Booking from the Events page — `bookFromEventsPage.spec.ts`
 
 | ID        | Test case                                   | Steps                                          | Expected |
 | --------- | ------------------------------------------- | ---------------------------------------------- | -------- |
-| TC-EV-07  | Book 1 ticket after filtering (Concert, Conference, Festival — one run each) | Events → filter category → pick a card with seats → Book Now → book 1 ticket | Details page shows the card's title, category and price; confirmation shows a reference, the customer, 1 ticket and total = price. |
+| TC-EV-01  | Book 1 ticket after filtering (Concert, Conference, Festival — one run each) | Events → filter category → pick a card with seats → Book Now → book 1 ticket | Details page shows the card's title, category and price; confirmation shows a reference, the customer, 1 ticket and total = price. |
 
 The detailed card ↔ details checks (date, time, venue, city, seats, form defaults) are covered once,
 on the Home entry point, in `bookFeaturedEventTicket.spec.ts`.

@@ -6,12 +6,7 @@ import type { BoundSection } from '../utils/selectorDefinition';
 import { bindSelectors } from '../utils/selectorDefinition';
 import { withParams } from '../utils/selectors';
 import { parseMoney, parseIntFrom } from '../utils/parse';
-
-export interface CustomerDetails {
-  name: string;
-  email: string;
-  phone: string;
-}
+import type { CustomerDetails } from '../types/ui';
 
 /** The three customer fields of the booking form. */
 export type FormField = keyof CustomerDetails;

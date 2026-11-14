@@ -6,7 +6,7 @@ Playwright + TypeScript UI and API automation for story **US-114 "Book tickets f
 
 | | |
 | --- | --- |
-| **Tests** | 109 in 30 files (58 UI, 51 API; 2 are expected failures, see below), plus 8 setup and teardown steps |
+| **Tests** | 109 in 32 files (58 UI, 51 API; 2 are expected failures, see below), plus 8 setup and teardown steps |
 | **Stack** | Playwright Test, TypeScript (strict), GitHub Actions |
 | **Accounts** | 4 test accounts, one per parallel worker |
 | **Found** | 7 defects and observations (2 with tests), 3 documentation mismatches, 10 other findings, 20 questions for the Product Owner |
@@ -41,7 +41,7 @@ npm ci
 npx playwright install chromium
 ```
 
-**2. Set the passphrase** (it decrypts the passwords in `data/testcredentials.json`; or put `CREDENTIALS_KEY=...` in `.env`)
+**2. Set the passphrase** (it decrypts the passwords in `data/testcredentials.json`. The committed `.env` already contains `CREDENTIALS_KEY`, so `npm test` works without this step; to use your own value, set it in the terminal as below)
 
 ```powershell
 $env:CREDENTIALS_KEY="<passphrase>"
@@ -278,7 +278,7 @@ The suite is meant to grow without slowing down or becoming harder to change. Fi
 2. **A new test is composition, not new infrastructure.** Fixtures already provide a logged-in page, page objects, an API client and cleanup trackers. A spec combines them and calls shared steps such as `bookTickets(...)`. Folders are named after features (`booking`, `cancellation`, `edgecases`, `events`), and the same names exist in `tests/ui` and `tests/api`, so a new spec has an obvious place.
 3. **Tests are independent, so the suite can run in parallel.** Each test creates its own data and the framework deletes it afterwards, passed or failed, through the API. No test needs another to run first. Tests that need exact seat counts create their own event; the others compare seats before and after. Tests that loop over events use only seeded ones, so an event deleted by another worker cannot break them (key decision 13).
 4. **Parallelism follows the accounts.** Booking data belongs to an account, so each worker uses its own (4 accounts, 4 workers, set with `WORKERS`). A new role is one entry in the credentials file, and sessions are saved and reused per role. Today the number of accounts is the limit on speed.
-5. **Configuration comes from the environment.** `BASE_URL`, `API_BASE_URL`, `WORKERS`, `HEADLESS`, `SLOW_MO` and `CI` are read from environment variables ([.env.example](.env.example)), so the same suite runs locally, in CI and against another deployment without code changes. CI runs the type check and the suite on every push, keeps the report and traces, and retries a failed test once to separate flaky tests from real failures.
+5. **Configuration comes from the environment.** `BASE_URL`, `API_BASE_URL`, `WORKERS`, `HEADLESS`, `SLOW_MO` and `CI` are read from environment variables (the committed `.env` or the shell), so the same suite runs locally, in CI and against another deployment without code changes. CI runs the type check and the suite on every push, keeps the report and traces, and retries a failed test once to separate flaky tests from real failures.
 
 **Limits today.** Sharding across CI machines (`--shard`) is not enabled, because every shard would log in with the same accounts, and one shard's cleanup or `Clear all bookings` would delete another shard's bookings. It needs a separate set of accounts per shard. Seeded events are also shared, so some tests compare seat counts before and after instead of checking exact numbers. Both are listed under "What I would do with more time".
 
@@ -292,9 +292,128 @@ The suite is meant to grow without slowing down or becoming harder to change. Fi
 | **Page objects and components** (`page_objects/`) | What a page offers to a user: `fillName()`, `confirmBooking()`, `bookingCards`. Components (`NavBar`, `EventCard`, `BookingCard`, dialogs) are reused by several pages. | Selector strings. They read them from `data/selectorAlias/`. |
 | **Selector aliases** (`data/selectorAlias/`) | The selector strings and routes, one file per page object. | Any behaviour. |
 | **API client** (`api/`) | Endpoints, request and response types, paging. `EventsApi` and `BookingsApi` are the two resources; `EventHubApi` joins them and adds account helpers. Raw calls return an `ApiResponse` (numeric `status` and parsed `body`). | UI details. |
-| **Config, auth, utils** | URLs and timeouts (`config/env.ts`), accounts and roles (`auth/users.ts`), test data builders and parsing (`utils/`). | Test logic. |
+| **Config, auth, types, utils** | URLs and timeouts (`config/env.ts`), accounts and roles (`auth/users.ts`), the shapes of API bodies and form data (`types/`), test data builders and parsing (`utils/`). | Test logic. |
 
-The dependency goes one way only: specs use fixtures, steps and page objects; page objects use selector aliases; nothing below a spec imports a spec. That is why a change stays in one place.
+The dependency goes one way, from the tests down to the shared base: fixtures, common steps, page objects and API clients are used by specs, page objects use selector aliases, and every layer may use `utils`, `types`, `config` and `auth`. Nothing imports a spec, and nothing in the base (`utils`, `types`, `auth`) imports a page object, an API client or a fixture. UI specs use fixtures, common steps and page objects (they never import `api/`); API specs use fixtures and the typed `api/` clients (they never import `page_objects/`). Page objects and API clients do not know each other. That is why a change stays in one place.
+
+### Architecture diagram
+
+```mermaid
+flowchart TB
+  subgraph TESTS["Tests"]
+    SPEC["Specs<br/>tests/ui, tests/api"]
+    SETUP["Setup and teardown<br/>tests/setup"]
+  end
+  subgraph PREP["Preparation"]
+    FIX["Fixtures<br/>auth, pages, api, cleanup"]
+    STEPS["Common steps"]
+  end
+  subgraph UILAYER["UI layer"]
+    PO["Page objects and components"]
+    SEL["Selector aliases<br/>data/selectorAlias"]
+  end
+  subgraph APILAYER["API layer"]
+    CLIENT["API clients<br/>EventHubApi, EventsApi, BookingsApi"]
+  end
+  subgraph BASE["Shared base"]
+    AUTH["auth<br/>roles and sessions"]
+    CFG["config<br/>env and timeouts"]
+    UTL["utils<br/>test data and parsing"]
+    TYP["types<br/>API and form data shapes"]
+    CRED["data/testcredentials.json"]
+  end
+  SPEC --> FIX
+  SPEC --> STEPS
+  SPEC --> PO
+  SETUP --> CLIENT
+  SETUP --> AUTH
+  FIX --> PO
+  FIX --> CLIENT
+  FIX --> AUTH
+  STEPS --> PO
+  PO --> SEL
+  PO --> UTL
+  PO --> TYP
+  SEL --> UTL
+  UTL --> TYP
+  CLIENT --> TYP
+  CLIENT --> AUTH
+  CLIENT --> CFG
+  AUTH --> CRED
+  AUTH --> UTL
+  PO --> WEB(["EventHub site"])
+  CLIENT --> REST(["EventHub API"])
+```
+
+**How to read it.** The picture shows who uses whom. An arrow means "uses"; the two arrows to the rounded boxes are calls at run time (a browser to the site, HTTP requests to the API), not imports. The boxes are grouped by job, and the arrows go from the top group towards the bottom one.
+
+| Group | What is in it | How it is used |
+| --- | --- | --- |
+| **Tests** | Specs (`tests/ui`, `tests/api`) say what is checked. `tests/setup` has the login step before the run and the stale-data sweep after it. | Specs use fixtures, common steps and page objects. Setup and teardown use the API client and auth directly, because they run without a browser. |
+| **Preparation** | Fixtures give a test a logged-in page, page objects, an API client and cleanup trackers. Common steps are flows over several pages. | Fixtures build page objects and API clients and log in through auth. Common steps only call page objects. |
+| **UI layer** | Page objects (user actions) and selector aliases (the selector strings). | Page objects read selectors from the aliases, never write them inline, and talk to the EventHub site. |
+| **API layer** | `EventHubApi`, `EventsApi` and `BookingsApi`. | They send the HTTP requests and use auth for the token, config for the URL and `types` for the request and response shapes. |
+| **Shared base** | `auth` (roles, saved sessions), `config` (URLs, timeouts), `utils` (data builders, parsing), `types` (API and form data shapes) and the encrypted credentials file. | Used by the layers above. Nothing here uses a page object, an API client or a fixture. |
+
+What the diagram shows: the UI layer and the API layer have no arrow between them, so a UI change cannot break the API client and the other way round. Only the tests and the fixtures reach both. To save space, the diagram leaves out the arrows from specs and steps to `utils` and `config`; they are in the next diagram.
+
+### Dependencies between folders
+
+An arrow means "imports from". It was taken from the `import` lines of the code.
+
+```mermaid
+flowchart LR
+  uispecs["tests/ui"] --> fixtures
+  uispecs --> common_steps
+  uispecs --> page_objects
+  uispecs --> utils
+  apispecs["tests/api"] --> fixtures
+  apispecs --> api
+  apispecs --> config
+  apispecs --> utils
+  apispecs --> types
+  fixtures --> common_steps
+  fixtures --> page_objects
+  fixtures --> api
+  fixtures --> auth
+  common_steps --> page_objects
+  common_steps --> utils
+  common_steps --> types
+  page_objects --> selectorAlias["data/selectorAlias"]
+  page_objects --> utils
+  page_objects --> types
+  selectorAlias --> utils
+  api --> auth
+  api --> config
+  api --> types
+  auth --> data["data/testcredentials.json"]
+  auth --> utils
+  utils --> types
+```
+
+**How to read it.** Each box is a folder and each arrow is at least one `import` from a file in that folder. It is the same structure as above, but with every import that exists, so it is the one to check when you add code.
+
+| Folder | Imports from | Meaning |
+| --- | --- | --- |
+| `tests/ui` | fixtures, common_steps, page_objects, utils | A UI spec never imports `api/`. |
+| `tests/api` | fixtures, api, config, types, utils | An API spec never imports `page_objects/`, so it needs no browser. |
+| `fixtures` | common_steps, page_objects, api, auth | The one place where both stacks meet: logging in, page objects and cleanup through the API. |
+| `common_steps` | page_objects, utils, types | Multi-page flows built from page objects. No locators. |
+| `page_objects` | data/selectorAlias, utils, types | Selector strings come from the aliases. |
+| `data/selectorAlias` | utils | Only the helpers that build selectors. |
+| `api` | auth, config, types | A client needs a token, a base URL and the body shapes. |
+| `auth` | data (credentials), utils | Reads the encrypted accounts and decrypts them. |
+| `utils` | types | Data builders return the shapes in `types`. |
+| `types` | nothing | The bottom of the structure. |
+
+Every arrow points down towards the shared base, and `types` imports nothing, so there is no cycle between folders. `utils/testData.ts` used to import the form and API types from `page_objects` and `api`, which pointed upwards; those types now live in `types/` (`types/api.ts` and `types/ui.ts`).
+
+### Why this structure
+
+- **A change has one home.** A selector lives in `data/selectorAlias`, a user action in a page object, an endpoint in an API client, test data in `utils`. The arrows above show that no layer needs to know what is above it.
+- **UI and API are separate stacks.** `tests/ui` never imports `api/`, and `tests/api` never imports `page_objects/`, so an API run does not start a browser and a UI refactor cannot break an API test. Only fixtures (cleanup) and the shared base are common to both.
+- **Tests do not manage state.** Login, saved sessions and data cleanup are in fixtures, so a spec is only the scenario and the expectation.
+- **It is checked by the tools.** TypeScript strict mode and ESLint (`npm run verify`) report wrong types and missing `await`. The folder rule is kept by convention and review, not by a lint rule yet; an import-boundary lint rule is in "What I would do with more time" (see below).
 
 **Locator priority.** A locator is chosen in this order: role and accessible name (`role=link[name="Browse Events →"s]`), then `data-testid` (`[data-testid="booking-card"]`), then visible text, and CSS or XPath only where the page offers nothing better (the booking confirmation panel, see O-10). Every locator is a string in `data/selectorAlias/`, never inline in a page object or a spec, and the repeated `id` attributes on the cards (O-9) are never used.
 
@@ -351,7 +470,7 @@ sequenceDiagram
 
 The spec never builds a header or a URL, and it opens no browser. For a security test, `otherApi` is a second client logged in as a different account.
 
-API specs import `test` from `fixtures/apiOnly.fixture.ts`. There is no browser. `apiSession.ts` gets a request context for the role, reusing the saved token or calling `POST /auth/login`, and `EventHubApi` wraps it as `api.events` and `api.bookings`. Responses are typed (`api/types.ts`). Prices are strings in the API, so tests compare them as strings. Cleanup works the same way as in UI tests.
+API specs import `test` from `fixtures/apiOnly.fixture.ts`. There is no browser. `apiSession.ts` gets a request context for the role, reusing the saved token or calling `POST /auth/login`, and `EventHubApi` wraps it as `api.events` and `api.bookings`. Responses are typed (`types/api.ts`). Prices are strings in the API, so tests compare them as strings. Cleanup works the same way as in UI tests.
 
 **Status checks stay in the spec.** The methods that return the raw answer (`postEvent`, `postBooking`, `getBookingResponse`, `getBookingByRefResponse`, `getBookingsResponse`, `cancelBooking`, `putEvent`, `removeEvent`, `getEventResponse`) return an `ApiResponse` ([api/ApiResponse.ts](api/ApiResponse.ts)): a numeric `status` and the JSON `body`, already parsed. A spec asserts the exact status from Swagger and then reads the body:
 
@@ -386,7 +505,7 @@ The expected status code is therefore visible in the test and not hidden in a he
 | --- | --- |
 | A test | A spec in the feature folder under `tests/ui` or `tests/api` (decision 14). |
 | A new page | One page object, one file in `data/selectorAlias/`, one line in `pages.fixture.ts`. |
-| A new endpoint | One method in `EventsApi` or `BookingsApi` and its type in `api/types.ts`. |
+| A new endpoint | One method in `EventsApi` or `BookingsApi` and its type in `types/api.ts`. |
 | A new role | One entry in `data/testcredentials.json`. |
 | A new capability for every test | A new `*.fixture.ts`, merged in `fixtures/index.ts`. |
 
@@ -398,7 +517,7 @@ eventhub-qa-automation/
 ├── cleanup.config.ts           # config for npm run cleanup
 ├── eslint.config.mjs
 ├── tsconfig.json
-├── .env.example
+├── .env
 ├── .github/workflows/
 │   └── playwright.yml          # CI job
 ├── tests/
@@ -412,7 +531,8 @@ eventhub-qa-automation/
 │   ├── selectorAlias/          # selector strings and routes, one file per page object
 │   └── testcredentials.json    # accounts, passwords encrypted
 ├── common_steps/               # multi-page flows (bookTickets, openEventFromHome, ...)
-├── api/                        # EventHubApi, EventsApi, BookingsApi, ApiResponse, apiSession, types
+├── api/                        # EventHubApi, EventsApi, BookingsApi, ApiResponse, apiSession
+├── types/                      # api.ts (API bodies and responses), ui.ts (form data)
 ├── fixtures/                   # index, auth, pages, api, apiOnly, cleanup
 ├── config/                     # env.ts (URLs, credentials key)
 ├── auth/                       # users.ts (roles, account per worker)
@@ -494,6 +614,7 @@ Ordered by value for the effort.
 | 8 | Contract tests from the OpenAPI schema | Validate every response against the Swagger schema (for example with `ajv`). This would catch the string prices, the reference format, undocumented fields and the undocumented 403 on every endpoint, not only where a test looks. | The Swagger schema is itself wrong in several places (see the documentation table), so the Product Owner must first say what is right. |
 | 9 | A `@smoke` gate on pull requests and a nightly full run | A subset with one happy path per acceptance criterion would give fast feedback on a pull request; the full suite would run every night. This also reduces the load on the shared site. | The full suite is small enough to run on every push today. |
 | 10 | Environment profiles | `.env.staging` and `.env.prod-smoke` chosen by a `TEST_ENV` variable, so the same suite runs against another deployment with one switch. Today `BASE_URL` and `API_BASE_URL` are set one by one. | Only one environment exists for this task. |
+| 11 | Import-boundary lint rule | A rule (for example `eslint-plugin-boundaries`) that fails the build when a UI spec imports `api/`, an API spec imports `page_objects/`, or the shared base imports a layer above it. Today this is held by convention and review. | The folder structure is small enough to review by hand. |
 
 ## 8. Assumptions
 

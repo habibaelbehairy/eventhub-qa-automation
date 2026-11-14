@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import type { ApiResponse } from './ApiResponse';
 import { toApiResponse } from './ApiResponse';
 import { listAll } from './paginate';
-import type { ApiBooking, CreateBookingInput } from './types';
+import type { ApiBooking, CreateBookingInput } from '../types/api';
 
 /**
  * Bookings endpoints.

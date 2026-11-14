@@ -1,6 +1,6 @@
 import { test, expect } from '../../../fixtures/apiOnly.fixture';
 import { buildApiBooking } from '../../../utils/testData';
-import type { ApiBooking } from '../../../api/types';
+import type { ApiBooking } from '../../../types/api';
 
 /**
  * API — cancel a booking.

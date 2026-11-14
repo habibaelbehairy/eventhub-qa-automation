@@ -1,6 +1,6 @@
 import { test, expect } from '../../../fixtures/apiOnly.fixture';
 import { buildApiEvent, buildApiBooking } from '../../../utils/testData';
-import type { ApiBooking } from '../../../api/types';
+import type { ApiBooking } from '../../../types/api';
 
 /**
  * API cancellation — cancelling one booking releases only its own seats.

@@ -3,7 +3,7 @@ import { test, expect } from '../../../fixtures/apiOnly.fixture';
 import { env } from '../../../config/env';
 import { buildApiEvent, buildApiBooking } from '../../../utils/testData';
 import type { ApiResponse } from '../../../api/ApiResponse';
-import type { ApiBooking } from '../../../api/types';
+import type { ApiBooking } from '../../../types/api';
 
 /** A rejected request has the 400 status, the "Validation failed" message and names the field at fault. */
 function expectValidationError(response: ApiResponse, field: string): void {

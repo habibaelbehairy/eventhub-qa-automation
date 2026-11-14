@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import type { EventDetailsPage, CustomerDetails } from '../page_objects/EventDetailsPage';
+import type { EventDetailsPage } from '../page_objects/EventDetailsPage';
+import type { CustomerDetails } from '../types/ui';
 import { parseMoney, parseIntFrom } from '../utils/parse';
 
 export interface BookTicketsOptions {

@@ -1,7 +1,7 @@
 import 'dotenv/config';
 
 /**
- * Single source for environment settings. Values come from .env (see .env.example) or CI variables.
+ * Single source for environment settings. Values come from .env or CI variables.
  * The rest of the framework imports from here instead of reading process.env directly.
  */
 export const env = {

@@ -6,19 +6,7 @@ import type { BoundSection } from '../../utils/selectorDefinition';
 import { bindSelectors } from '../../utils/selectorDefinition';
 import { DeleteEventDialog } from '../components/DeleteEventDialog';
 import { tableDate } from '../../utils/dates';
-
-export interface EventFormData {
-  title: string;
-  description?: string;
-  category: 'Conference' | 'Concert' | 'Sports' | 'Workshop' | 'Festival';
-  city: string;
-  venue: string;
-  /** Local date & time in the input's format: 'YYYY-MM-DDTHH:mm' */
-  dateTime: string;
-  price: number;
-  totalSeats: number;
-  imageUrl?: string;
-}
+import type { EventFormData } from '../../types/ui';
 
 /** Required fields of the "+ New Event" form (they have validation messages). */
 export type EventFormField = keyof typeof S.props.messages;

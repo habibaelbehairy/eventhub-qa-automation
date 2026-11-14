@@ -4,7 +4,7 @@ import type { ApiResponse } from './ApiResponse';
 import { toApiResponse } from './ApiResponse';
 import type { BookingsApi } from './BookingsApi';
 import { listAll } from './paginate';
-import type { ApiEvent, CreateEventInput } from './types';
+import type { ApiEvent, CreateEventInput } from '../types/api';
 
 /**
  * Events endpoints.

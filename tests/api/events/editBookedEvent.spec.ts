@@ -1,7 +1,7 @@
 import { test, expect } from '../../../fixtures/apiOnly.fixture';
 import { buildApiEvent, buildApiBooking } from '../../../utils/testData';
 import type { EventHubApi } from '../../../api/EventHubApi';
-import type { ApiBooking } from '../../../api/types';
+import type { ApiBooking } from '../../../types/api';
 
 /** GET /bookings/ref/{ref} and GET /bookings/{id} both return the booking with this embedded event. */
 async function expectBookingLookups(api: EventHubApi, booking: ApiBooking, event: Record<string, unknown>) {

@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import { BookingsApi } from './BookingsApi';
 import { EventsApi } from './EventsApi';
 
-export * from './types';
+export * from '../types/api';
 
 /**
  * Typed client for the EventHub REST API, composed of one class per resource:

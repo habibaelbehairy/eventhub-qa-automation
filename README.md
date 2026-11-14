@@ -509,5 +509,4 @@ Ordered by value for the effort.
 
 ## 9. How AI was used
 
-AI tools (GitHub Copilot in VS Code) helped with exploring the site and the API, and with drafting and reviewing the code and this README. Every decision was checked by running the tests against the live site, every defect was reproduced before it was written down, and I can explain each file.
-
+AI tools (GitHub Copilot in VS Code) helped with exploring the site and the API, and with drafting and reviewing the code and this README. 

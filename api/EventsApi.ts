@@ -30,6 +30,11 @@ export class EventsApi {
     return (await this.getEvent(eventId)).availableSeats;
   }
 
+  /** Raw POST /events, so negative tests can assert the status themselves. */
+  async postEvent(input: Partial<CreateEventInput>): Promise<APIResponse> {
+    return this.api.post('events', { data: input });
+  }
+
   /** Creates an event and returns it (with its id, availableSeats, ...). */
   async createEvent(input: CreateEventInput): Promise<ApiEvent> {
     const response = await this.api.post('events', { data: input });

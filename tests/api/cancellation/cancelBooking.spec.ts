@@ -8,7 +8,7 @@ import { buildApiBooking } from '../../../utils/testData';
  * Bookings are tracked so they are removed even if a test fails before cancelling.
  */
 test.describe('DELETE /bookings/{id} - cancel a booking', { tag: ['@api', '@booking', '@seeded'] }, () => {
-  test('cancelling a booking removes it and restores the seats for every listed event', async ({ api, bookings }) => {
+  test('every listed event: a booking can be cancelled once, seats are restored and the booking is gone', async ({ api, bookings }) => {
     // Seeded events only: temporary events from admin tests can be deleted while this loop runs.
     const events = (await api.events.listEvents()).filter((e) => e.isStatic);
     expect(events.length, 'GET /events returns seeded events').toBeGreaterThan(0);
@@ -30,31 +30,11 @@ test.describe('DELETE /bookings/{id} - cancel a booking', { tag: ['@api', '@book
         expect(await api.events.availableSeats(event.id)).toBe(seatsBefore);
         expect(await api.bookings.findBookingByRef(booking.bookingRef)).toBeUndefined();
         expect((await api.bookings.listBookings()).map((b) => b.bookingRef)).not.toContain(booking.bookingRef);
+
+        // A cancelled booking cannot be fetched or cancelled again.
+        expect((await api.bookings.getBookingResponse(booking.id)).status(), 'GET bookings/{id} after cancel').toBe(404);
+        expect((await api.bookings.cancelBooking(booking.id)).status(), 'second cancel').toBe(404);
       });
     }
-  });
-
-  test('fetching a cancelled booking by id returns 404', async ({ api, bookings }) => {
-    const [event] = (await api.events.listEvents()).filter((e) => e.isStatic);
-    expect(event, 'GET /events returns at least one event').toBeDefined();
-
-    const booking = await api.bookings.createBooking(buildApiBooking(event.id, { quantity: 1 }));
-    bookings.track(booking.bookingRef);
-
-    await api.bookings.cancelBooking(booking.id);
-
-    const response = await api.bookings.getBookingResponse(booking.id);
-    expect(response.status(), 'GET bookings/{id} after cancel').toBe(404);
-  });
-
-  test('cancelling an already-cancelled booking returns 404', async ({ api, bookings }) => {
-    const [event] = (await api.events.listEvents()).filter((e) => e.isStatic);
-    expect(event, 'GET /events returns at least one event').toBeDefined();
-
-    const booking = await api.bookings.createBooking(buildApiBooking(event.id, { quantity: 1 }));
-    bookings.track(booking.bookingRef);
-
-    expect((await api.bookings.cancelBooking(booking.id)).status()).toBe(200);
-    expect((await api.bookings.cancelBooking(booking.id)).status(), 'second cancel').toBe(404);
   });
 });

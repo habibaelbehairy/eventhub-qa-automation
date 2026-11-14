@@ -22,6 +22,7 @@ test.describe('Edge case: book a newly created event', { tag: ['@api', '@booking
     const eventAfter = (await api.events.listEvents()).find((e) => e.id === event.id);
     expect(eventAfter!.availableSeats).toBe(18);
 
+    // The booking is listed and has the correct embedded event.
     const listedBooking = (await api.bookings.listBookings()).find((b) => b.bookingRef === booking.bookingRef);
     expect(listedBooking, 'booking is returned by GET /bookings').toBeDefined();
     expect(listedBooking).toMatchObject({ id: booking.id, eventId: event.id, quantity: 2, status: 'confirmed' });

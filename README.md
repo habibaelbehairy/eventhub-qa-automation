@@ -32,24 +32,11 @@ Playwright + TypeScript UI and API automation for story **US-114 "Book tickets f
 
 ## Quick start
 
-Needs Node 24 and the passphrase for the credentials (see [Credentials for reviewers](#credentials-for-reviewers)).
-
-**1. Install**
+Needs Node 24. The committed `.env` already holds the credentials passphrase (see [Credentials for reviewers](#credentials-for-reviewers)), so nothing else has to be configured.
 
 ```powershell
 npm ci
 npx playwright install chromium
-```
-
-**2. Set the passphrase** (it decrypts the passwords in `data/testcredentials.json`. The committed `.env` already contains `CREDENTIALS_KEY`, so `npm test` works without this step; to use your own value, set it in the terminal as below)
-
-```powershell
-$env:CREDENTIALS_KEY="<passphrase>"
-```
-
-**3. Run**
-
-```powershell
 npm test
 npm run report
 ```

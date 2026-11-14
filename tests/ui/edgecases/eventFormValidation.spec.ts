@@ -151,9 +151,9 @@ test.describe('Event form content and validation', { tag: ['@ui', '@admin', '@ed
     await adminEventsPage.assertNoEventCreated();
   });
 
-  // Expected failure (defect 4): the form shows no inline error for a fractional seat count.
+  // Expected failure (defect 3): the form shows no inline error for a fractional seat count.
   test('Verify seats error is shown when the number of seats is a decimal', { tag: '@xfail' }, async ({ adminEventsPage }) => {
-    test.fail(true, 'Defect 4: a fractional seat count (1.5) is not rejected by the form');
+    test.fail(true, 'Defect 3: a fractional seat count (1.5) is not rejected by the form');
     await adminEventsPage.setFieldValue('totalSeats', '1.5');
     await adminEventsPage.submitForm();
     await adminEventsPage.assertInlineError('totalSeats');

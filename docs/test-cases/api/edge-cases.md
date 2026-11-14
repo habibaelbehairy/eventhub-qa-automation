@@ -5,7 +5,7 @@
 | Story        | US-114 AC5 — validation, errors and rules around `POST /bookings` |
 | Base URL     | `https://api.eventhub.rahulshettyacademy.com/api` |
 | Authorization | Bearer token from `POST /auth/login`, sent by the framework. |
-| Automated in | `tests/api/edgecases/` (`createBookingValidation`, `bookingOwnership`, `bookSameEventTwice`) |
+| Automated in | `tests/api/edgecases/` (`createBookingValidation`, `bookingOwnership`, `bookOthersEvent`, `bookSameEventTwice`) |
 | Test data    | Events are created where the seat count must be known. Everything created is deleted through the API after each test. |
 
 ## Validation and errors: `createBookingValidation.spec.ts`
@@ -27,11 +27,17 @@
 
 | ID | Test case | Steps | Expected |
 | -- | --------- | ----- | -------- |
-| TC-API-18a | The owner can read their own booking (positive control) | Account A creates an event and books 1 ticket → A calls `GET /bookings/{id}`, `GET /bookings/ref/{ref}` and `GET /bookings` | Both reads return 200 with the same booking and it is in A's list. |
-| TC-API-18 | Another user's booking is protected | Account A creates an event and books 1 ticket → account B calls `GET /bookings/{id}`, `GET /bookings/ref/{ref}`, `GET /bookings` and `DELETE /bookings/{id}` | B gets 403 on the id and reference reads and 404 on the cancel call, and the booking is not in B's list. For A the booking is still "confirmed" and the seat is still taken. |
+| TC-API-18a | The owner can read their own booking (positive control) | Account A creates an event and books 1 ticket → A calls `GET /bookings/{id}`, `GET /bookings/ref/{ref}` and `GET /bookings` | 201 on create and on the booking, 200 on the reads. Both reads return 200 with the same booking and it is in A's list. |
+| TC-API-18 | Another user's booking is protected | Account A creates an event and books 1 ticket → account B calls `GET /bookings/{id}`, `GET /bookings/ref/{ref}`, `GET /bookings` and `DELETE /bookings/{id}` | 201 on create and on the booking. B gets 403 on the id and reference reads and 404 on the cancel call, and `GET /bookings` for B returns 200 without the booking. For A the booking is still "confirmed" and the seat is still taken. |
+
+## Event of another user: `bookOthersEvent.spec.ts`
+
+| ID | Test case | Steps | Expected |
+| -- | --------- | ----- | -------- |
+| TC-API-26 | An event created by another account cannot be booked | Account A creates an event with 20 seats → account B calls `POST /bookings` for it with 2 tickets | 201 on create. B gets 404, as if the event did not exist, and `GET /bookings` for B returns 200. The event still shows 20 seats and B has no booking for it. |
 
 ## Same event twice: `bookSameEventTwice.spec.ts`
 
 | ID | Test case | Steps | Expected |
 | -- | --------- | ----- | -------- |
-| TC-API-24 | The same user books the same event twice | Create an event with 20 seats → book twice with the same user | Two separate bookings with different ids and references; both are listed; the event shows 16 seats. (Whether this should be allowed is a Product Owner question.) |
+| TC-API-24 | The same user books the same event twice | Create an event with 20 seats → book twice with the same user | 201 on both bookings, 200 on the reads. Two separate bookings with different ids and references; both are listed; the event shows 16 seats. (Whether this should be allowed is a Product Owner question.) |

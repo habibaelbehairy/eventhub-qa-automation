@@ -1,4 +1,4 @@
-﻿# EventHub QA Automation
+# EventHub QA Automation
 
 Playwright + TypeScript UI and API automation for story **US-114 "Book tickets for an event"** (AC1-AC5) on https://eventhub.rahulshettyacademy.com.
 
@@ -6,12 +6,12 @@ Playwright + TypeScript UI and API automation for story **US-114 "Book tickets f
 
 | | |
 | --- | --- |
-| **Tests** | 102 in 30 files, UI and API (2 are expected failures, see below), plus 8 setup and teardown steps |
+| **Tests** | 101 in 30 files (58 UI, 43 API; 2 are expected failures, see below), plus 8 setup and teardown steps |
 | **Stack** | Playwright Test, TypeScript (strict), GitHub Actions |
 | **Accounts** | 4 test accounts, one per parallel worker |
 | **Found** | 7 defects and observations (2 with tests), 3 documentation mismatches, 9 other findings, 21 questions for the Product Owner |
 
-**Contents:** [Quick start](#quick-start) · [1. Story review](#1-story-review) · [2. Defects and observations](#2-defects-and-observations) · [3. Test strategy](#3-test-strategy) · [4. Framework architecture](#4-framework-architecture) · [5. Key decisions](#5-key-decisions) · [6. Continuous integration](#6-continuous-integration) · [7. What I would do with more time](#7-what-i-would-do-with-more-time) · [8. Assumptions (read first)](#8-assumptions)
+**Contents:** [Quick start](#quick-start) · [1. Story review](#1-story-review) · [2. Defects and observations](#2-defects-and-observations) · [3. Test strategy](#3-test-strategy-what-is-covered-and-why) · [4. Framework architecture](#4-framework-architecture) · [5. Key decisions](#5-key-decisions) · [6. Continuous integration](#6-continuous-integration) · [7. What I would do with more time](#7-what-i-would-do-with-more-time) · [8. Assumptions (read first)](#8-assumptions) · [9. How AI was used](#9-how-ai-was-used)
 
 ## What the assessment asked for, and where to find it
 
@@ -21,9 +21,9 @@ Playwright + TypeScript UI and API automation for story **US-114 "Book tickets f
 | A review of the story: what is missing, unclear or wrong, and what to ask the Product Owner | [1. Story review](#1-story-review) and [Questions for the Product Owner](#questions-for-the-product-owner) |
 | Anything in the app that does not match the story or the docs | [2. Defects and observations](#2-defects-and-observations) |
 | UI and API automation of the booking flow (AC1 to AC5) | [Coverage by acceptance criterion](#coverage-by-acceptance-criterion) |
-| An architecture that can grow over a couple of years | [Scalability](#scalability), [Architecture diagram](#architecture-diagram) and [Structure](#structure) |
+| An architecture that can grow over a couple of years | [Scalability](#scalability), [The layers](#the-layers-from-the-top) and [Structure](#structure) |
 | Authorization handled by the framework, not by tests | [5. Key decisions](#5-key-decisions), decision 2 |
-| Why these tests and not others | [Why these tests](#why-these-tests) |
+| Why these tests and not others | [Test strategy](#3-test-strategy-what-is-covered-and-why) |
 | Cleaning up data on a shared environment | [5. Key decisions](#5-key-decisions), decision 4 |
 | Bonus: GitHub Actions on every push | [6. Continuous integration](#6-continuous-integration) |
 | Key decisions and what I would do with more time | [5. Key decisions](#5-key-decisions) and [7. What I would do with more time](#7-what-i-would-do-with-more-time) |
@@ -41,6 +41,9 @@ npm run test:ui                   # ui project only
 npm run test:api                  # api project only
 npm run test:xfail                # only the expected failures (known defects)
 npm run typecheck
+npm run lint                        # ESLint (typescript-eslint and the Playwright plugin)
+npm run lint:fix                   # same, and fixes what can be fixed
+npm run verify                     # typecheck + lint, run this before a commit
 npm run report                    # open the HTML report
 ```
 
@@ -68,7 +71,7 @@ Optional `.env`: `BASE_URL`, `API_BASE_URL`, `HEADLESS=false`, `SLOW_MO=500` (wa
 
 **Parallel runs.** Each worker runs as its own account (worker 0 = `primaryUser`, worker 1 = `secondaryUser`, ...), so the default is 4 workers, one per account. Use `$env:WORKERS=1` for a serial run. Do not run the `ui` and `api` projects in two terminals at the same time, because they would share the accounts. Tests inside one spec file always run in order. A failed test is retried once; a test that passes on the retry is reported as flaky.
 
-**Expected failures.** Two tests document product defects and are marked `test.fail(...)` with the `@xfail` tag. The report shows them as passed (they fail as expected), so a normal run is green. At the end of every run the terminal (and the CI log) prints a line such as `Known defects: 2 of the 110 passed tests are expected failures` with their names (`reporters/expectedFailuresReporter.ts`). If one of them starts to really pass, Playwright reports it as a failure, which means the bug was fixed and the marker can be removed. List them with `npm run test:xfail` (or `npx playwright test --grep "@xfail"`; quote it in PowerShell). Each one carries its reason in the report: the HTML report shows a `fail` annotation with the defect description on the test. They are:
+**Expected failures.** Two tests document product defects and are marked `test.fail(...)` with the `@xfail` tag. The report shows them as passed (they fail as expected), so a normal run is green. If one of them starts to really pass, Playwright reports it as a failure, which means the bug was fixed and the marker can be removed. List them with `npm run test:xfail` (or `npx playwright test --grep "@xfail"`; quote it in PowerShell). Each one carries its reason in the report: the HTML report shows a `fail` annotation with the defect description on the test. They are:
 
 | Defect | Test |
 | --- | --- |
@@ -91,20 +94,15 @@ Test cases docs are in [docs/test-cases/ui](docs/test-cases/ui) and [docs/test-c
 
 ### What is wrong, missing or unclear in US-114
 
-| # | Area | What is wrong, missing or unclear | Effect | Question |
-| --- | --- | --- | --- | --- |
-| S-01 | Actor | The story says "visitor", but booking needs a registered, logged-in user. Anonymous visitors are sent to the login page and the API answers 401. | The tests log in as a user; the visitor case is covered only as "must sign in" (`anonymousAccess`). | Q-01 |
-| S-02 | AC1 | No limits: minimum and maximum tickets per booking, and what happens when more tickets than seats are requested. | Limits taken from the app: 1 to 10 tickets and the seats left. | Q-02 |
-| S-03 | AC1 | No validation rules for name, email and phone (format, length, country code, required or optional). | The rules the app enforces are tested as the intended ones. | Q-03 |
-| S-04 | AC1 | "Confirmation with a booking reference" does not say what the reference looks like. The Swagger example (`POST /bookings`, `GET /bookings/{id}`) shows `EVT-A1B2C3`, the app shows for example `D-J7DJEU`. | Tests accept `/^[A-Z0-9]+-[A-Z0-9]{6}$/`. | Q-04 |
-| S-05 | AC1 | Nothing about seats: are they reduced after booking and given back after cancellation? Nothing about past or sold-out events. | Seats are checked as a change (before and after). Past-event booking is an observation (defect 1). | Q-05 |
-| S-06 | AC2 | "Ticket price multiplied by number of tickets" says nothing about currency, rounding, decimal prices, taxes or fees, or free events. | Decimal price is defect 2; free events are tested and pass. | Q-06, Q-07 |
-| S-07 | AC3 | "Appears in My Bookings" does not say which details are shown, or the order of the list. | Tests check event title, tickets, total and reference. | Q-08 |
-| S-08 | AC4 | "I can cancel" has no rules: who can cancel, until when, refund, and the status afterwards (deleted or marked cancelled). | Tests assert what the app does: the booking disappears and the seats return. | Q-09 |
-| S-09 | AC5 | Only says "the same works through the API". Missing: authentication, request and response shape, error codes, double submit. | The API tests check 201, 400, 401, 403 or 404, and that nothing is created on an error. | Q-10 |
-| S-10 | Whole story | No non-functional criteria: duplicate bookings for the same event, two users booking the last seat, accessibility. | Duplicate bookings are tested as current behaviour; the other two are not covered. | Q-11, Q-17 |
-| S-11 | AC1 | Whose details are entered is not said. Name, email and phone are free text and independent of the account. Nothing about a confirmation email. | Tests enter any valid details; no email is checked. | Q-15 |
-| S-12 | Whole story | Payment is not mentioned. The booking details page has a payment block, but the booking form has no payment step. | A booking is treated as confirmed without payment. | Q-16 |
+| Area | What is wrong, missing or unclear |
+| --- | --- |
+| Actor | **S-01** the story says "visitor", but booking needs a logged-in user (anonymous: login page, API 401). Tests log in; the visitor case is only "must sign in". |
+| AC1 | **S-02** no ticket limits or message when seats run out (tests use 1 to 10 and the seats left). **S-03** no rules for name, email, phone. **S-04** reference format unspecified: Swagger shows `EVT-A1B2C3`, the app `D-J7DJEU` (tests accept `/^[A-Z0-9]+-[A-Z0-9]{6}$/`). **S-05** nothing on seats after booking or cancel, or on past and sold-out events (defect 1). **S-11** whose details are entered, and no confirmation email. |
+| AC2 | **S-06** nothing on currency, rounding, decimal prices, taxes, fees or free events (decimal price is defect 2; free events pass). |
+| AC3 | **S-07** no fields or order for My Bookings (tests check title, tickets, total, reference). |
+| AC4 | **S-08** "cancel" is not defined. In the app, cancel means the booking is deleted (`GET` returns 404 afterwards), not marked as cancelled, and the seats return. Also no rules on who can cancel, until when, or refund. |
+| AC5 | **S-09** only "the same works through the API": no auth, request or response shape, error codes, double submit (tests check 201, 400, 401, 403, 404). |
+| Whole story | **S-10** no non-functional criteria: duplicate bookings (tested as current behaviour), last-seat race and accessibility (not covered). **S-12** no payment, though the details page has a payment block (a booking counts as confirmed without it). |
 
 ### Suggested rewrite of the story
 
@@ -120,43 +118,43 @@ A version the team could test without guessing (every sentence maps to a questio
 
 ### Questions for the Product Owner
 
-| # | Topic | Question | Why it matters | From |
-| --- | --- | --- | --- | --- |
-| Q-01 | Guests | Should a visitor be able to book without an account, or should the story say "registered user"? | Decides the actor and whether guest booking needs tests. | S-01 |
-| Q-02 | Limits | What are the ticket limits, and what message is shown when seats run out? Is the maximum of 10 per booking, per user or per event? | The tests use 1 to 10 per booking and the seats left. | S-02 |
-| Q-03 | Validation | What is valid for name, email and phone (format, length, country code, required or optional), and what are the exact error messages? Are international numbers (for example +49 ...) valid? Should the UI and the API apply the same phone rule? | The tests encode the rules the app enforces. | S-03 |
-| Q-04 | Booking reference | Which format is correct, the Swagger example `EVT-A1B2C3` or a short prefix such as `D-J7DJEU`? The prefix follows the first letter of the event title; is that intended? Is the reference unique and permanent? | The tests accept both shapes. | S-04, D-2 |
-| Q-05 | Past and sold-out events | Should a past or sold-out event be bookable? If not, should the Book button be disabled, or should the API return an error (and which status)? | Defect 1: today a past event can be booked. | S-05, defect 1 |
-| Q-06 | Decimal prices | Should the UI show cents ($12.35 and a total of $37.05), or are whole dollars intended? Which currency, and are there fees or taxes? | Defect 2: the backend stores the exact value, the UI rounds. | S-06, defect 2 |
-| Q-07 | Free events | Can an event cost 0? Should it have a different flow (for example no payment step)? | Today a free event can be created and booked, the total is 0. | S-06 |
-| Q-08 | My Bookings | Which fields must My Bookings show, in what order, and is the list paged (how many per page)? | Defines what AC3 checks. | S-07 |
-| Q-09 | Cancellation | Is there a deadline or a refund? Can part of a booking be cancelled? Is a cancelled booking deleted or kept with a "cancelled" status, and are the seats released? | Today the booking is deleted (`GET` returns 404 afterwards) and the seats return. | S-08 |
-| Q-10 | API | What are the required fields, status codes and error format for `POST /bookings`? Which of AC1 to AC4 must also hold through the API? | Defines what AC5 checks. | S-09 |
-| Q-11 | Duplicates and concurrency | May one user book the same event more than once? What protects against a double submit? What should happen when two users book the last seat? | Today duplicates are allowed in the UI and the API. The double submit and the last-seat race are not tested. | S-10 |
-| Q-12 | City filter | Should "Los Angeles" be a filter option, or should the demo concert use a city that the filter offers? | Defect 4: that event cannot be found by city. | defect 4 |
-| Q-13 | Seat count | Should the event form reject 1.5 seats like it does 0 and -5? | Defect 3: no error is shown. | defect 3 |
-| Q-14 | Edit and delete | Should deleting an event delete its bookings silently? Should an edit change how existing bookings look? | Both happen today (`deleteBookedEvent`, `editBookedEvent`). | other findings |
-| Q-15 | Booking for someone else | May a user book on behalf of someone else? Should the form be pre-filled from the profile? Is a confirmation email expected? | Name, email and phone are free text today and no email is checked. | S-11 |
-| Q-16 | Payment | Is payment out of scope for this story? Is a booking "confirmed" without payment? | The details page has a payment block, but there is no payment step. | S-12 |
-| Q-17 | Non-functional | Are there accessibility, mobile or performance criteria for booking? | Not covered today (see "What I would do with more time"). | S-10 |
-| Q-18 | Seat counter | Should the seat count on the event page update right after a booking? | Tests read seat counts after a reload. | defect 5 |
-| Q-19 | Quantity type | Should the API reject a quantity sent as a string? | Not tested. | defect 7 |
-| Q-20 | Clear all bookings | Should the button be hidden or disabled when there are no bookings? | Not tested. | defect 6 |
-| Q-21 | Access control | Should reading someone else's booking answer 404 (like cancelling it) so the API does not reveal that it exists? | The test asserts exactly 403 on the reads and 404 on the cancel. | O-7 |
+| # | Topic | Question and why it matters |
+| --- | --- | --- |
+| Q-01 | Guests | Should a visitor be able to book without an account, or should the story say "registered user"? **Why it matters:** Decides the actor and whether guest booking needs tests. |
+| Q-02 | Limits | What are the ticket limits, and what message is shown when seats run out? Is the maximum of 10 per booking, per user or per event? A user can book the same event several times today, so 10 per booking is not a limit per user (see O-3). **Why it matters:** The tests use 1 to 10 per booking and the seats left. |
+| Q-03 | Validation | What is valid for name, email and phone (format, length, country code, required or optional), and what are the exact error messages? Are international numbers (for example +49 ...) valid? Should the UI and the API apply the same phone rule? **Why it matters:** The tests encode the rules the app enforces. |
+| Q-04 | Booking reference | Which format is correct, the Swagger example `EVT-A1B2C3` or a short prefix such as `D-J7DJEU`? The prefix follows the first letter of the event title; is that intended? Is the reference unique and permanent? **Why it matters:** The tests accept both shapes. |
+| Q-05 | Past and sold-out events | Should a past or sold-out event be bookable? If not, should the Book button be disabled, or should the API return an error (and which status)? **Why it matters:** Defect 1: today a past event can be booked. |
+| Q-06 | Decimal prices | Should the UI show cents ($12.35 and a total of $37.05), or are whole dollars intended? Which currency (the placeholder phone is `+91 ...`, an Indian number, yet prices are shown in `$`), and are there fees or taxes? **Why it matters:** Defect 2: the backend stores the exact value, the UI rounds. |
+| Q-07 | Free events | Can an event cost 0? Should it have a different flow (for example no payment step)? **Why it matters:** Today a free event can be created and booked, the total is 0. |
+| Q-08 | My Bookings | Which fields must My Bookings show, in what order, and is the list paged (how many per page)? **Why it matters:** Defines what AC3 checks. |
+| Q-09 | Cancellation | Is there a deadline or a refund? Can part of a booking be cancelled? Is a cancelled booking deleted or kept with a "cancelled" status, and are the seats released? **Why it matters:** Today the booking is deleted (`GET` returns 404 afterwards) and the seats return. |
+| Q-10 | API | What are the required fields, status codes and error format for `POST /bookings`? Which of AC1 to AC4 must also hold through the API? **Why it matters:** Defines what AC5 checks. |
+| Q-11 | Duplicates and concurrency | May one user book the same event more than once? What protects against a double submit? What should happen when two users book the last seat? **Why it matters:** Today duplicates are allowed in the UI and the API. The double submit and the last-seat race are not tested. |
+| Q-12 | City filter | Should "Los Angeles" be a filter option, or should the demo concert use a city that the filter offers? **Why it matters:** Defect 4: that event cannot be found by city. |
+| Q-13 | Seat count | Should the event form reject 1.5 seats like it does 0 and -5? **Why it matters:** Defect 3: no error is shown. |
+| Q-14 | Edit and delete | Should deleting an event delete its bookings silently? Should an edit change how existing bookings look? **Why it matters:** Both happen today (`deleteBookedEvent`, `editBookedEvent`). |
+| Q-15 | Booking for someone else | May a user book on behalf of someone else? Should the form be pre-filled from the profile? Is a confirmation email expected? **Why it matters:** Name, email and phone are free text today and no email is checked. |
+| Q-16 | Payment | Is payment out of scope for this story? Is a booking "confirmed" without payment? **Why it matters:** The details page has a payment block, but there is no payment step. |
+| Q-17 | Non-functional | Are there accessibility, mobile or performance criteria for booking? **Why it matters:** Not covered today (see "What I would do with more time"). |
+| Q-18 | Seat counter | Should the seat count on the event page update right after a booking? **Why it matters:** Tests read seat counts after a reload. |
+| Q-19 | Quantity type | Should the API reject a quantity sent as a string? **Why it matters:** Not tested. |
+| Q-20 | Clear all bookings | Should the button be hidden or disabled when there are no bookings? **Why it matters:** Not tested. |
+| Q-21 | Access control | Why does the API answer 403 in one case and 404 in another? Reading another user's booking by id or reference gives 403, cancelling it gives 404, and booking an event that another user created gives 404 (as if it did not exist). Should all three answer the same, and which one (404 so the API does not reveal that the resource exists, or 403)? **Why it matters:** The tests assert exactly 403 on the reads and 404 on the cancel and on the foreign event, so they must change if the rule changes. |
 
 ## 2. Defects and observations
 
 The requirements do not say what is correct for defects 2 and 3, so their tests are marked as expected failures (`test.fail(...)` and the `@xfail` tag). The pipeline stays green, the defects stay visible in the report, and a test turns red when its bug is fixed. That is the signal to remove the marker. Run them with `npm run test:xfail`. Defects 1 and 4 to 7 are observations without a test. Severity is my proposal; the Product Owner decides.
 
-| # | Severity | Defect | Where | Steps and evidence | Expected | Actual | Status and tests | Question |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | High | Past events can be booked | UI and API | Open an event dated in the past (World Tech Summit, 18 Apr 2026) and book it, or `POST /bookings` for it. | Booking is blocked (button disabled or an error). | Booking is confirmed. | Observation, no test (see [the note below](#why-there-is-no-test-for-booking-a-past-event)). Creating a past event is refused: `tests/api/events/createPastEvent.spec.ts` (passes) and the date rule in `tests/ui/edgecases/eventFormValidation.spec.ts` (passes). | Q-05 |
-| 2 | Medium | Decimal prices are rounded in the UI | UI only | As admin, create an event with price 12.35 and book 3 tickets. | Price $12.35 and total $37.05 (AC2). | UI shows $12 and a rounded total. The API returns `"12.35"` and `totalPrice` 37.05, so only the UI is wrong. | Expected failure (`@xfail`): `tests/ui/edgecases/decimalPriceEvent.spec.ts` (1 test). The API check `tests/api/events/eventPrices.spec.ts` passes. | Q-06 |
-| 3 | Low | The event form accepts a fractional seat count | UI | As admin, open "+ New Event", fill the other fields and enter 1.5 in Total Seats. | An inline error, like for 0 or -5. | No inline error is shown. | Expected failure (`@xfail`): `tests/ui/edgecases/eventFormValidation.spec.ts` (1 test). | Q-13 |
-| 4 | Low | A featured event has a city the city filter does not offer | UI | On the Events page, the demo concert is in "Los Angeles", which is not in the city filter. | Every event can be found with the city filter. | That event cannot be found by city. | Observation, no test. | Q-12 |
-| 5 | Low | The seat counter on the event page is not updated after booking | UI | Open your own event (20 / 20 seats), book 1 ticket and stay on the page. | The counter shows 19 / 20 seats. | It still shows 20 / 20 until the page is reloaded (then 19 / 20). The booking itself is correct. | Observation, no test. | Q-18 |
-| 6 | Low | "Clear all bookings" is shown and enabled when there are no bookings | UI and API | Open My Bookings with no bookings. `DELETE /bookings` also answers 200 with "0 booking(s) cleared". | The button is hidden or disabled. | The button is enabled next to the "No bookings yet" message. | Observation, no test. | Q-20 |
-| 7 | Low | The API accepts the ticket quantity as a string | API | `POST /bookings` with `"quantity": "2"` instead of `2`. | 400 validation error for a wrong type. | 201, the booking is created. | Observation, no test. | Q-19 |
+| # | Severity | Finding | Reproduced by |
+| --- | --- | --- | --- |
+| 1 | High | **Past events can be booked.** (UI and API) Open an event dated in the past (World Tech Summit, 18 Apr 2026) and book it, or `POST /bookings` for it. Expected: Booking is blocked (button disabled or an error). Actual: Booking is confirmed. Question: Q-05. | Observation, no test (see [the note below](#why-there-is-no-test-for-booking-a-past-event)). Creating a past event is refused: `tests/api/events/createPastEvent.spec.ts` (passes) and the date rule in `tests/ui/edgecases/eventFormValidation.spec.ts` (passes). |
+| 2 | Medium | **Decimal prices are rounded in the UI.** (UI only) As admin, create an event with price 12.35 and book 3 tickets. Expected: Price $12.35 and total $37.05 (AC2). Actual: UI shows $12 and a rounded total. The API returns `"12.35"` and `totalPrice` 37.05, so only the UI is wrong. Question: Q-06. | Expected failure (`@xfail`): `tests/ui/edgecases/decimalPriceEvent.spec.ts` (1 test). The API check `tests/api/events/eventPrices.spec.ts` passes. |
+| 3 | Low | **The event form accepts a fractional seat count.** (UI) As admin, open "+ New Event", fill the other fields and enter 1.5 in Total Seats. Expected: An inline error, like for 0 or -5. Actual: No inline error is shown. Question: Q-13. | Expected failure (`@xfail`): `tests/ui/edgecases/eventFormValidation.spec.ts` (1 test). |
+| 4 | Low | **A featured event has a city the city filter does not offer.** (UI) On the Events page, the demo concert is in "Los Angeles", which is not in the city filter. Expected: Every event can be found with the city filter. Actual: That event cannot be found by city. Question: Q-12. | Observation, no test. |
+| 5 | Low | **The seat counter on the event page is not updated after booking.** (UI) Open your own event (20 / 20 seats), book 1 ticket and stay on the page. Expected: The counter shows 19 / 20 seats. Actual: It still shows 20 / 20 until the page is reloaded (then 19 / 20). The booking itself is correct. Question: Q-18. | Observation, no test. |
+| 6 | Low | **"Clear all bookings" is shown and enabled when there are no bookings.** (UI and API) Open My Bookings with no bookings. `DELETE /bookings` also answers 200 with "0 booking(s) cleared". Expected: The button is hidden or disabled. Actual: The button is enabled next to the "No bookings yet" message. Question: Q-20. | Observation, no test. |
+| 7 | Low | **The API accepts the ticket quantity as a string.** (API) `POST /bookings` with `"quantity": "2"` instead of `2`. Expected: 400 validation error for a wrong type. Actual: 201, the booking is created. Question: Q-19. | Observation, no test. |
 
 ### Why there is no test for booking a past event
 
@@ -182,21 +180,58 @@ While exploring the app I noticed that all the seeded events are dated in the pa
 
 ### Other findings from exploring the app and API
 
-| # | Finding | Evidence | Question |
-| --- | --- | --- | --- |
-| O-1 | Deleting an event also deletes its bookings. Customers who booked it lose their bookings silently. May be intended. | `tests/api/events/deleteBookedEvent.spec.ts` | Q-14 |
-| O-2 | Editing an event changes how its bookings look: a booking shows the event's current title, city and price. | `tests/api/events/editBookedEvent.spec.ts` | Q-14 |
-| O-3 | One user can book the same event more than once. Each booking gets its own reference and takes its own seats. The tests describe the current behaviour and would change if duplicates are forbidden. | `tests/api/edgecases/bookSameEventTwice.spec.ts`, `tests/ui/edgecases/bookSameEventTwice.spec.ts` | Q-11 |
-| O-4 | The API returns `price` and `totalPrice` as strings (for example `"12.35"`). | `tests/api/events/eventPrices.spec.ts` | None |
-| O-5 | The live site has only 3 events and all are in the past, so booking tests create their own events where they need known data. | Seeded events (`isStatic`) | Q-05 |
-| O-6 | A booking belongs to its owner: another account gets 403 when it reads it, and 404 when it cancels it. | `tests/api/edgecases/bookingOwnership.spec.ts` | None |
-| O-7 | Reading another user's booking (`GET /bookings/{id}` and `/bookings/ref/{ref}`) answers 403, but cancelling it answers 404. The 403 confirms that the booking exists. | Checked on the live API with two accounts. `bookingOwnership` asserts exactly 403 on the reads and 404 on the cancel. | Q-21 |
-| O-8 | A booking in the UI has a "Check eligibility for refund?" button on its details page, but the story has no refund rule. | Booking details page | Q-09 |
-| O-9 | The event page shows the date without a year ("Monday, 14 December"), the booking details page shows it with the year. | Event page and booking details page | None |
+| # | Finding | Evidence |
+| --- | --- | --- |
+| O-1 | Deleting an event also deletes its bookings. Customers who booked it lose their bookings silently. May be intended. | `tests/api/events/deleteBookedEvent.spec.ts` |
+| O-2 | Editing an event changes how its bookings look: a booking shows the event's current title, city and price. | `tests/api/events/editBookedEvent.spec.ts` |
+| O-3 | One user can book the same event more than once. Each booking gets its own reference and takes its own seats. The tests describe the current behaviour and would change if duplicates are forbidden. | `tests/api/edgecases/bookSameEventTwice.spec.ts`, `tests/ui/edgecases/bookSameEventTwice.spec.ts` |
+| O-4 | The API returns `price` and `totalPrice` as strings (for example `"12.35"`). | `tests/api/events/eventPrices.spec.ts` |
+| O-5 | The live site has only 3 events and all are in the past, so booking tests create their own events where they need known data. | Seeded events (`isStatic`) |
+| O-6 | A booking belongs to its owner: another account gets 403 when it reads it, and 404 when it cancels it. | `tests/api/edgecases/bookingOwnership.spec.ts` |
+| O-7 | Reading another user's booking (`GET /bookings/{id}` and `/bookings/ref/{ref}`) answers 403, but cancelling it answers 404. The 403 confirms that the booking exists. | Checked on the live API with two accounts. `bookingOwnership` asserts exactly 403 on the reads and 404 on the cancel. |
+| O-8 | A booking in the UI has a "Check eligibility for refund?" button on its details page, but the story has no refund rule. | Booking details page |
+| O-9 | The event page shows the date without a year ("Monday, 14 December"), the booking details page shows it with the year. | Event page and booking details page |
+| O-10 | Testability: the `id` attributes `event-card` and `book-now-btn` are repeated on every card of the Events page (checked on the live site: 3 cards, 3 equal ids), which is invalid HTML. Locators cannot rely on them, so the tests use `data-testid` and roles. | Events page |
+| O-11 | Testability: the booking confirmation panel has no `data-testid`, so it is found by its "Booking Confirmed" heading and the `.booking-ref` class. A text or style change breaks those locators; one test id would remove the risk. | `data/selectorAlias/EventDetailsPage.ts` | None |
 
-## 3. Test strategy
+## 3. Test strategy: what is covered and why
 
-Every acceptance criterion has a UI test and an API test. The API carries the boundary and negative cases because they are fast and exact there; the UI covers what needs a browser: the user journey, what the customer sees (confirmation, totals, My Bookings), the dialogs and the form rules. The highest risks in a booking flow get the most depth: money (wrong totals), inventory (seats), access control (other people's bookings) and data integrity (what the screen shows matches what is stored).
+**Approach:** risk-based, following the test pyramid. Every acceptance criterion has a UI test and an API test (AC5 asks for the API). The **API** carries the boundary and negative cases because they are fast, exact and stable there. The **UI** covers only what needs a browser: the user journey, what the customer sees (confirmation, totals, My Bookings), the dialogs and the client-side form rules. The API validation matrix is not repeated in the browser. When a rule is checked in both, the pair shows where a bug is: for the decimal price the API test passes and the UI test fails, so the front end is wrong.
+
+The highest risks in a booking flow are **money** (wrong totals), **inventory** (seats), **access control** (other people's bookings) and **data integrity** (what the screen shows matches what is stored). Every test maps to one of these risks or to an acceptance criterion.
+
+### API: `tests/api/`
+
+| File | Covers | Why |
+| --- | --- | --- |
+| `booking/createBooking` | AC1, AC2, AC3, AC5: one test books 2 tickets on every listed event. Status "confirmed", reference format, `totalPrice` = price x quantity, seats go down, booking found in the list and by reference | Core contract and money, checked on all seeded data |
+| `cancellation/cancelBooking` | AC4: cancel returns 200, seats are restored, the booking is gone from the list, `GET` returns 404, cancelling twice returns 404 | Inventory after cancel. Cancel means delete, not "marked as cancelled" |
+| `cancellation/cancelOneOfTwoBookings` | Only the cancelled booking's seats are released, the other stays confirmed | Catches releasing too many seats |
+| `edgecases/createBookingValidation` | Missing field, quantity 0, -1, 2.5 and 11, bad name, email and phone, no token (401), sold-out event, more tickets than seats; each case checks that no seats were taken | Boundary values. "No side effects" protects inventory |
+| `edgecases/bookingOwnership` | The owner reads the booking by id, by reference and in the list; another account gets 403 on the reads, 404 on the cancel and does not see it in its list | Access control, run as two different users |
+| `edgecases/bookOthersEvent` | Booking an event created by another account returns 404 and takes no seats | Access control on events |
+| `edgecases/bookSameEventTwice` | Two bookings of one event: different ids and references, seats reduced by both | Documents the current behaviour (Q-11) |
+| `edgecases/createEventValidation` | Missing fields, bad titles, negative price on `POST /events` | Booking tests rely on events made by the suite |
+| `events/bookNewEvent`, `editBookedEvent`, `deleteBookedEvent` | A new event can be booked; an edit shows in its bookings; a delete removes its bookings | Data integrity between events and bookings |
+| `events/eventPrices` | Decimal price keeps the exact value and total (12.35, 37.05); a free event books with total 0 | Money. Proves the backend is right when the UI rounds (defect 2) |
+| `events/createPastEvent` | A past event date is refused with 400 | The rule that booking a past event breaks (defect 1) |
+
+### UI: `tests/ui/`
+
+| File | Covers | Why |
+| --- | --- | --- |
+| `booking/bookFeaturedEventTicket`, `bookFromEventsPage` | The journey from Home and from the Events page: choose the event, fill name, email and phone, Confirm Booking, check the confirmation (reference, customer, tickets, total) (AC1) | The primary user journey |
+| `booking/bookMultipleTickets` | 2, 4 and 10 tickets: summary line, total, confirmation, seats before and after, and the card in My Bookings (AC2, AC3) | What the customer sees about money and seats |
+| `booking/verifyBookingDetails` | The booking details page: header, customer and payment blocks | The page a customer opens from My Bookings |
+| `cancellation/cancelFeaturedEventBooking`, `cancelFromBookingDetails` | Cancel through the dialog: dismiss keeps the booking, confirm removes it and the seats return (AC4) | Destructive action protected by a confirmation step |
+| `cancellation/clearAllBookings` | Three bookings are cleared together and stay gone after a reload | Bulk delete |
+| `edgecases/bookingFormValidation` | Form content, empty form (three errors), bad name, email and phone rejected, valid form accepted | Rules that exist in the browser |
+| `edgecases/ticketQuantity` | Starts at 1, cannot go below 1, stops at 10 and at the seats left; the total follows the quantity | Limits of the stepper |
+| `edgecases/anonymousAccess` | A visitor opening My Bookings or an event page is sent to the login page | Story says "visitor" (S-01) |
+| `edgecases/bookSameEventTwice`, `freeEvent` | Two bookings of one event both listed; a price 0 event is created, shown as $0 and booked | Current behaviour and a money edge case |
+| `edgecases/decimalPriceEvent` | `@xfail`: price 12.35 is shown as $12 | Defect 2 stays visible |
+| `edgecases/eventFormValidation` | Admin form validation, including the past-date rule; `@xfail` for 1.5 seats | Test data is made through this form (defect 3) |
+| `events/createEvent`, `editEvent`, `deleteEvent` | The admin screens: table, dialogs, and the effect on a booking | Events change what bookings show |
 
 ### Coverage by acceptance criterion
 
@@ -209,38 +244,12 @@ Every acceptance criterion has a UI test and an API test. The API carries the bo
 | AC5 same through the API | - | all of `tests/api` (`POST /bookings`, validation, auth, seats, ownership) |
 | Beyond the story | `events/createEvent`, `editEvent`, `deleteEvent`; `edgecases/eventFormValidation` (includes the past-date rule) | `events/editBookedEvent`, `deleteBookedEvent`, `createPastEvent`, `edgecases/createEventValidation` |
 
-### Why these tests
-
-- **Every AC has a UI test and an API test.** That is what the story asks for (AC5 says the same must work through the API), and it shows whether the UI and the backend agree. The decimal price case is the example: the API test proves the backend is correct, so the UI test points at the front end.
-- **Depth goes where the risk is.** Money (total price, decimals, free events), limits (1 to 10 tickets, seats left, more tickets than seats), input validation (name, email, phone, empty form), data integrity (seats released on cancel, what happens when an event is edited or deleted), and access control (no token, another user's booking, not logged in).
-- **Negative and boundary cases are API-first.** They are fast and exact there (0, -1, 11 tickets, missing field, unknown event). The UI covers the same rules once, through the form, because that is what a user sees.
-- **Admin event tests exist because they are test data and a risk.** Events can be created, edited and deleted in the UI, which changes what bookings show. Booking tests need known events, and the shared site has only 3 events, all in the past.
-
-### UI tests and their API counterparts
-
-The same rule is checked twice on purpose. The API test is fast and exact, so it proves what the backend does. The UI test proves that the screen shows and sends the same thing. When the two disagree, the table tells you where the bug is (the decimal price is the example: API passes, UI fails, so the front end is wrong).
-
-| Topic | UI test (what the user sees) | API test (what the backend does) |
-| --- | --- | --- |
-| Create a booking (AC1, AC5) | `booking/bookFeaturedEventTicket` (Concert, Conference, Festival from Home) and `booking/bookFromEventsPage` (filter by category, then book). Fill name, email and phone, click Confirm Booking; the confirmation shows a reference, the customer, the tickets and the total. | `createBooking`: one test books 2 tickets for every seeded event. `POST /bookings` returns `status` "confirmed", the same `eventId`, `quantity` and customer, and a reference matching `/^[A-Z0-9]+-[A-Z0-9]{6}$/`. |
-| Total price (AC2) | `booking/bookMultipleTickets` with 2, 4 and 10 tickets: the summary line, the total and the confirmation all equal price x quantity. | `createBooking`: one test books 2 tickets for every seeded event and checks `totalPrice` = price x 2 for each, plus the booking in `GET /bookings`. |
-| Booking in My Bookings (AC3) | `bookMultipleTickets`, `verifyBookingDetails` and `bookSameEventTwice`: the card with the reference is in My Bookings with the event title, tickets and total. The details page shows the header, customer and payment blocks. | `createBooking`: "every listed event can be booked: confirmation, total price and bookings list are correct" (`GET /bookings` and the lookup by reference, with the embedded event); `bookSameEventTwice`. |
-| Seats go down | `bookMultipleTickets` reads the seats on the event page before and after booking. | `createBooking`: the same one test checks that the seats go down by the booked quantity for every seeded event; `createBookingValidation`: 10 tickets leave 10 of 20 seats. |
-| Cancel a booking (AC4) | `cancellation/cancelFeaturedEventBooking` (dialog, dismiss, confirm) and `cancelFromBookingDetails`: the card disappears and the seats on Home return to the earlier value. | `cancelBooking`: one test books 2 tickets on every seeded event, then `DELETE /bookings/{id}` returns 200, seats are restored, the booking is gone from the list, `GET` returns 404, and cancelling twice returns 404. |
-| Clear all bookings | `cancellation/clearAllBookings`: three bookings are listed, then cleared and stay gone after a reload. | None. |
-| Ticket quantity limits | `edgecases/ticketQuantity`: starts at 1, minus is disabled at 1, plus stops at 10, and stops at the seats left when fewer than 10 remain. | `createBookingValidation`: quantity 0, -1, 2.5 and 11 return 400; 10 is accepted; a sold-out event rejects a booking; 3 tickets on a 2-seat event return 400 and the seats stay at 2. |
-| Form validation | `edgecases/bookingFormValidation`: empty form shows three errors; name ("A", spaces only), email (four bad formats) and phone (9 digits, letters) are rejected; a valid form is accepted. | `createBookingValidation`: a missing `customerEmail`, a name of 1 character or empty, the four bad emails and two bad phones return 400 and take no seats. |
-| Not logged in or not the owner (security) | `edgecases/anonymousAccess`: a visitor opening `/bookings` or an event page is sent to the login page. | `createBookingValidation`: no `Authorization` header returns 401. `bookOthersEvent`: booking an event created by another account returns 404. `bookingOwnership`: another account gets 403 when it reads my booking and 404 when it cancels it, and does not see it in its list. |
-| Past event cannot be created | `edgecases/eventFormValidation`: the admin form shows "Must be a future date" and no event is created. | `events/createPastEvent`: `POST /events` with a past date returns 400 about `eventDate` and creates nothing. |
-| Decimal price (defect 2) | `edgecases/decimalPriceEvent` (`@xfail`): an event with price 12.35 shows $12 and a rounded total. | `events/eventPrices`: the event is returned with `"12.35"` and `totalPrice` 37.05 for 3 tickets. Passes. |
-| Free event (price 0) | `edgecases/freeEvent`: create an event with price 0, check it shows `$0`, book 2 tickets with total `$0`. | `events/eventPrices`: price 0 is stored, the booking is confirmed with `totalPrice` 0, and the seats drop by 2. |
-| Same event twice | `edgecases/bookSameEventTwice`: two bookings on one event, both in My Bookings with different references. | `edgecases/bookSameEventTwice`: two different ids and references, both listed, seats reduced by 4. |
-| Events created and changed by an admin | `events/createEvent`, `events/editEvent`, `events/deleteEvent`, `edgecases/eventFormValidation`: the admin screens (the form, the table, the dialogs). | `events/bookNewEvent`, `editBookedEvent`, `deleteBookedEvent`: what happens to bookings when their event is created, edited or deleted (the list shows the new values, a delete removes the bookings). |
-| Events page filter and demo data (defect 4) | None: observed only, to be confirmed with the Product Owner. | None. |
-
 ### Deliberately not covered
 
-Booking a past event (no way to create the test data, see [the note](#why-there-is-no-test-for-booking-a-past-event)), two users booking the last seat at once, token expiry and tampering, other browsers, and visual and accessibility checks. The last four are listed under "What I would do with more time".
+- **Booking a past event.** There is no way to create the test data (see [the note](#why-there-is-no-test-for-booking-a-past-event)).
+- **Race for the last seat** (two users booking at once). Valuable, but it fires parallel bursts at a shared public site; it needs a dedicated environment.
+- **Token expiry and tampering.**
+- **Other browsers, visual and accessibility checks.** See "What I would do with more time".
 
 ## 4. Framework architecture
 
@@ -248,30 +257,13 @@ Booking a past event (no way to create the test data, see [the note](#why-there-
 
 The suite is meant to grow without slowing down or becoming harder to change. Five choices make that possible:
 
-1. **Each layer has one job, so a change touches one file.** Specs say what is checked, page objects hold user actions, `data/selectorAlias` holds selectors, `api/` holds endpoints. A UI change is one selector or page-object edit. A new page is one page object, one selector file and one line in `pages.fixture.ts`. A new endpoint is one method in an API class. The [Architecture diagram](#architecture-diagram) shows the layers.
+1. **Each layer has one job, so a change touches one file.** Specs say what is checked, page objects hold user actions, `data/selectorAlias` holds selectors, `api/` holds endpoints. A UI change is one selector or page-object edit. A new page is one page object, one selector file and one line in `pages.fixture.ts`. A new endpoint is one method in an API class. The [layers table](#the-layers-from-the-top) shows them.
 2. **A new test is composition, not new infrastructure.** Fixtures already provide a logged-in page, page objects, an API client and cleanup trackers. A spec combines them and calls shared steps such as `bookTickets(...)`. Folders are named after features (`booking`, `cancellation`, `edgecases`, `events`), and the same names exist in `tests/ui` and `tests/api`, so a new spec has an obvious place.
 3. **Tests are independent, so the suite can run in parallel.** Each test creates its own data and the framework deletes it afterwards, passed or failed, through the API. No test needs another to run first. Tests that need exact seat counts create their own event; the others compare seats before and after. Tests that loop over events use only seeded ones, so an event deleted by another worker cannot break them (key decision 13).
 4. **Parallelism follows the accounts.** Booking data belongs to an account, so each worker uses its own (4 accounts, 4 workers, set with `WORKERS`). A new role is one entry in the credentials file, and sessions are saved and reused per role. Today the number of accounts is the limit on speed.
 5. **Configuration comes from the environment.** `BASE_URL`, `API_BASE_URL`, `WORKERS`, `HEADLESS`, `SLOW_MO` and `CI` are read from environment variables ([.env.example](.env.example)), so the same suite runs locally, in CI and against another deployment without code changes. CI runs the type check and the suite on every push, keeps the report and traces, and retries a failed test once to separate flaky tests from real failures.
 
 **Limits today.** Sharding across CI machines (`--shard`) is not enabled, because every shard would log in with the same accounts, and one shard's cleanup or `Clear all bookings` would delete another shard's bookings. It needs a separate set of accounts per shard. Seeded events are also shared, so some tests compare seat counts before and after instead of checking exact numbers. Both are listed under "What I would do with more time".
-
-### Architecture diagram
-
-```mermaid
-flowchart TD
-  Spec["Specs: tests/ui and tests/api<br/>say WHAT is checked"] --> Fix["Fixtures<br/>auth, api, cleanup, pages"]
-  Fix --> PO["Page objects + components<br/>locators and user actions"]
-  Fix --> Api["API client<br/>EventHubApi, EventsApi, BookingsApi"]
-  PO --> Sel["data/selectorAlias<br/>selector strings and routes"]
-  Spec --> Steps["common_steps<br/>multi-page flows"]
-  Steps --> PO
-  Fix --> Auth["auth/users.ts + testcredentials.json<br/>roles, sessions, encrypted passwords"]
-  Api --> Auth
-  Fix --> Clean["Cleanup trackers<br/>delete created data after each test"]
-```
-
-Rules that keep it growing cleanly: specs never contain selectors, URLs, login code or cleanup code; a UI change touches one selector or page-object file; a new endpoint is one method in an API class; a new role is one entry in the credentials file; a new page is one page object, one selector file and one line in `pages.fixture.ts`.
 
 ### The layers, from the top
 
@@ -282,31 +274,14 @@ Rules that keep it growing cleanly: specs never contain selectors, URLs, login c
 | **Common steps** (`common_steps/`) | Flows that cross several pages (open an event, book tickets, check seats on Home, clean up test data). | Locators. They call page objects. |
 | **Page objects and components** (`page_objects/`) | What a page offers to a user: `fillName()`, `confirmBooking()`, `bookingCards`. Components (`NavBar`, `EventCard`, `BookingCard`, dialogs) are reused by several pages. | Selector strings. They read them from `data/selectorAlias/`. |
 | **Selector aliases** (`data/selectorAlias/`) | The selector strings and routes, one file per page object. | Any behaviour. |
-| **API client** (`api/`) | Endpoints, request and response types, paging. `EventsApi` and `BookingsApi` are the two resources; `EventHubApi` joins them and adds account helpers. | UI details. |
+| **API client** (`api/`) | Endpoints, request and response types, paging. `EventsApi` and `BookingsApi` are the two resources; `EventHubApi` joins them and adds account helpers. Raw calls return an `ApiResponse` (numeric `status` and parsed `body`). | UI details. |
 | **Config, auth, utils** | URLs and timeouts (`config/env.ts`), accounts and roles (`auth/users.ts`), test data builders and parsing (`utils/`). | Test logic. |
 
 The dependency goes one way only: specs use fixtures, steps and page objects; page objects use selector aliases; nothing below a spec imports a spec. That is why a change stays in one place.
 
-### How a run is organised
+**Locator priority.** A locator is chosen in this order: role and accessible name (`role=link[name="Browse Events →"s]`), then `data-testid` (`[data-testid="booking-card"]`), then visible text, and CSS or XPath only where the page offers nothing better (the booking confirmation panel, see O-11). Every locator is a string in `data/selectorAlias/`, never inline in a page object or a spec, and the repeated `id` attributes on the cards (O-10) are never used.
 
-```mermaid
-flowchart LR
-  Cmd["npm test"] --> Cfg["playwright.config.ts<br/>4 workers, 1 retry"]
-  Cfg --> Setup["project setup<br/>log in every role once"]
-  Setup --> UI["project ui<br/>tests/ui"]
-  Setup --> API["project api<br/>tests/api"]
-  UI --> Clean["project cleanup<br/>sweep data older than 30 min"]
-  API --> Clean
-  UI --> W["Workers, one account each"]
-  API --> W
-  W --> A0["worker 0: primaryUser"]
-  W --> A1["worker 1: secondaryUser"]
-  W --> A2["worker 2: thirdUser"]
-  W --> A3["worker 3: fourthUser"]
-  W --> Rep["list + html reports<br/>+ known defects summary"]
-```
-
-### The life of one UI test
+### How a UI test runs
 
 ```mermaid
 sequenceDiagram
@@ -327,15 +302,13 @@ sequenceDiagram
 
 The spec never touches a token, a selector or a delete call: the fixtures and page objects do.
 
-### How a UI test runs
-
 1. The spec imports `test` from `fixtures/index.ts`. That is `mergeTests(cleanupTest, pagesTest)`, so one import gives the test a page, page objects, an API client and the cleanup trackers.
 2. The **auth fixture** creates one browser window per spec file and role. It starts from the saved session (`.auth/<role>.json`) when it is still fresh, or logs in once through the real login page and saves it. If the site rejects a saved session, it logs in again by itself. Between tests it only closes extra tabs; it does not reload the page.
 3. The **pages fixture** hands out page objects (`homePage`, `eventDetailsPage`, `myBookingsPage`...) that share that page.
 4. The test runs its steps through page objects and common steps. Anything it creates is registered with `bookings.track(ref)` or `events.track(title)`.
 5. After the test, passed or failed, the **cleanup fixture** deletes the tracked bookings and events through the API. This is faster than clicking in the UI and does not depend on the UI working.
 
-### The life of one API test
+### How an API test runs
 
 ```mermaid
 sequenceDiagram
@@ -344,13 +317,15 @@ sequenceDiagram
   participant C as API clients
   participant A as EventHub API
   F->>A: log in as the role (POST /auth/login) or reuse the saved token
-  S->>C: api.events.createEvent(...)
+  S->>C: api.events.postEvent(...)
   C->>A: POST /events with Authorization header
   A-->>C: 201 and the new event
+  C-->>S: ApiResponse (status, body)
   S->>F: events.track(title)
-  S->>C: api.bookings.createBooking(...)
+  S->>C: api.bookings.postBooking(...)
   C->>A: POST /bookings
   A-->>C: 201 and the booking
+  C-->>S: ApiResponse (status, body)
   S->>F: bookings.track(ref)
   S->>S: assert status code, body and totals
   Note over S,A: after the test, passed or failed
@@ -359,9 +334,17 @@ sequenceDiagram
 
 The spec never builds a header or a URL, and it opens no browser. For a security test, `otherApi` is a second client logged in as a different account.
 
-### How an API test runs
-
 API specs import `test` from `fixtures/apiOnly.fixture.ts`. There is no browser. `apiSession.ts` gets a request context for the role, reusing the saved token or calling `POST /auth/login`, and `EventHubApi` wraps it as `api.events` and `api.bookings`. Responses are typed (`api/types.ts`). Prices are strings in the API, so tests compare them as strings. Cleanup works the same way as in UI tests.
+
+**Status checks stay in the spec.** The methods that return the raw answer (`postEvent`, `postBooking`, `getBookingResponse`, `getBookingByRefResponse`, `getBookingsResponse`, `cancelBooking`, `putEvent`, `removeEvent`, `getEventResponse`) return an `ApiResponse` ([api/ApiResponse.ts](api/ApiResponse.ts)): a numeric `status` and the JSON `body`, already parsed. A spec asserts the exact status from Swagger and then reads the body:
+
+```ts
+const response = await api.bookings.postBooking(buildApiBooking(event.id, { quantity: 2 }));
+expect(response.status).toBe(201);
+const booking = response.body.data;
+```
+
+The expected status code is therefore visible in the test and not hidden in a helper. The helpers that only prepare data (`createEvent`, `createBooking`, `listEvents`...) assert their own 200 or 201 and return the data. The two "no token" tests use a plain Playwright request context, because the client always sends a token.
 
 ### Accounts, roles and parallel runs
 
@@ -378,7 +361,7 @@ API specs import `test` from `fixtures/apiOnly.fixture.ts`. There is no browser.
 
 ### Reporting and failures
 
-`list` reporter in the terminal and an HTML report with traces and screenshots kept only for failures. One retry (`retries: 1`) separates flaky tests from real ones; a test that passes only on retry is reported as flaky. Known product bugs are marked `@xfail` with `test.fail(...)` (decision 8).
+`list` reporter in the terminal and an HTML report with traces and screenshots kept only for failures. In CI the `github` reporter is added, so a failed test shows as an annotation on the run and the pull request. One retry (`retries: 1`) separates flaky tests from real ones; a test that passes only on retry is reported as flaky. Known product bugs are marked `@xfail` with `test.fail(...)` (decision 8).
 
 ### How to extend it
 
@@ -392,17 +375,33 @@ API specs import `test` from `fixtures/apiOnly.fixture.ts`. There is no browser.
 
 ### Structure
 
-| Folder | Purpose |
-| --- | --- |
-| `tests/ui`, `tests/api` | Specs, one Playwright project each |
-| `page_objects/` | Locators and user actions per page and component |
-| `data/selectorAlias/` | Selector strings and routes, one file per page object |
-| `common_steps/` | Reusable multi-page flows (open event, book tickets...) |
-| `api/` | Typed API client: `EventsApi`, `BookingsApi`, `EventHubApi` entry point: `api.events`, `api.bookings`, account helpers |
-| `fixtures/` | Auth, API, cleanup and page fixtures |
-| `config/`, `auth/`, `utils/` | Environment, accounts, test data builders |
-| `tests/setup` | Setup project (log in every role once) and teardown project (sweep stale data) |
-| `scripts/` | `cleanup.spec.ts` (`npm run cleanup`), `credentials.ts` |
+```
+eventhub-qa-automation/
+├── playwright.config.ts        # projects (setup, ui, api, cleanup), workers, retries, reporters
+├── cleanup.config.ts           # config for npm run cleanup
+├── eslint.config.mjs
+├── tsconfig.json
+├── .env.example
+├── .github/workflows/
+│   └── playwright.yml          # CI job
+├── tests/
+│   ├── setup/                  # auth.setup.ts (login once), cleanup.teardown.ts (sweep old data)
+│   ├── ui/                     # booking/ cancellation/ edgecases/ events/
+│   └── api/                    # booking/ cancellation/ edgecases/ events/
+├── page_objects/               # one class per page, BasePage as parent
+│   ├── admin/
+│   └── components/             # NavBar, EventCard, BookingCard, dialogs, messages
+├── data/
+│   ├── selectorAlias/          # selector strings and routes, one file per page object
+│   └── testcredentials.json    # accounts, passwords encrypted
+├── common_steps/               # multi-page flows (bookTickets, openEventFromHome, ...)
+├── api/                        # EventHubApi, EventsApi, BookingsApi, ApiResponse, apiSession, types
+├── fixtures/                   # index, auth, pages, api, apiOnly, cleanup
+├── config/                     # env.ts (URLs, credentials key)
+├── auth/                       # users.ts (roles, account per worker)
+├── utils/                      # testData, dates, parse, selectors, credentialsCrypto
+└── scripts/                    # cleanup.spec.ts, credentials.ts
+```
 
 ## 5. Key decisions
 
@@ -420,11 +419,12 @@ Each decision lists what it costs, because every choice here was a trade.
 | 8 | Known product bugs are expected failures (`@xfail`), not skipped | The test keeps its real assertion and is wrapped in `test.fail(...)`. The bug stays visible, the pipeline stays green, and the test turns red by itself when the bug is fixed. A case that cannot be tested reliably is removed and written down as an observation (see [2. Defects and observations](#2-defects-and-observations)). | A green pipeline can hide a known bug from someone who does not read the report; the end-of-run summary and the tag reduce that risk. The "expected" behaviour is my reading, until the Product Owner confirms it. |
 | 9 | GitHub Actions on every push, pull request and manual start | Install, type check, run the whole suite, upload the HTML report and traces for 14 days. Passwords are decrypted with the `CREDENTIALS_KEY` secret. One retry separates flaky tests from real failures. See [6. Continuous integration](#6-continuous-integration). | The retry can hide a rare flaky test, so flaky results are reported, not ignored. The pipeline is a single job, so it has no sharding. |
 | 10 | Encrypted passwords in the repository | A public repository should not expose passwords. AES-256-GCM with a key derived from a passphrase means reviewers need one secret instead of four passwords, and rotating a password is a command, not a code change. | Anyone with the passphrase can read every password, and a lost passphrase means re-encrypting. This is protection against casual exposure, not a vault. |
-| 11 | TypeScript strict mode and a type check in CI | Typed API responses catch wrong field names and the string-versus-number price at compile time. | Extra type declarations to write and maintain when the API changes. |
+| 11 | TypeScript strict mode, ESLint and a type check in CI | Typed API responses catch wrong field names and the string-versus-number price at compile time. `npm run verify` runs the type check and ESLint (`typescript-eslint` with `consistent-type-imports`, `no-floating-promises`, and the Playwright plugin) so unused code and missing `await` are found before a run. | Extra type declarations to write and maintain when the API changes. CI runs the type check only; lint is run locally with `npm run verify`. |
 | 12 | Explicit, readable tests | A test reads as the user flow with named steps (`test.step`), so a failed run says which step broke. Shared logic is in page objects, steps and fixtures. | Slightly longer specs than a compact, data-driven style. |
 | 13 | Tests do not depend on each other | Each test sets up and cleans up its own data, so tests can run in any order and in parallel. Files that build state step by step (the event form validation) say so in their header. | More setup per test and more API calls. See "Shared data and seeded events" below for the one exception handled. |
 | 14 | One rule for where a spec goes | Folders are named after the feature, never a role: `booking/`, `cancellation/` (happy paths), `edgecases/` (limits, validation, security, defects), `events/` (event management). The same names exist under `tests/ui` and `tests/api`. | A spec with two purposes must be placed by its main one. |
 | 15 | Specs call the resource clients directly | `api.events.createEvent(...)` and `api.bookings.createBooking(...)`. `EventHubApi` only adds what spans both resources or the account (`currentUserId`, `cleanupAccount`), so a new endpoint is added in one place. | Specs know the two resource names. There is no single facade to mock. |
+| 16 | Raw API calls return an `ApiResponse`, and the spec asserts the status | `expect(response.status).toBe(201)` is visible in every API test, with the exact code from Swagger, instead of a helper that asserts it out of sight. The body is parsed once, so a spec reads `response.body.data`. | The spec has one more line per call. The failure message shows the expected and received status, not the endpoint; the endpoint is the line of the failing `expect`. |
 
 ### Shared data and seeded events
 
@@ -445,7 +445,7 @@ flowchart LR
     F -->|yes| G["Retry once"]
     G -->|passes| H["Reported as flaky"]
     G -->|fails again| X
-    F -->|no| I["Known-defects summary<br/>in the log"]
+    F -->|no| I["All tests passed<br/>(@xfail count as passed)"]
     H --> I
     I --> J["Upload playwright-report<br/>and test-results<br/>14 days"]
     X --> J
@@ -459,7 +459,7 @@ flowchart LR
 | Run tests | `npx playwright test` runs the `setup`, `ui`, `api` and `cleanup` projects with 4 workers. `CREDENTIALS_KEY` decrypts the account passwords. | A test fails twice, or an `@xfail` test unexpectedly passes (the bug was fixed). |
 | Upload report | Saves the HTML report, traces and `test-results` for 14 days, also when tests failed. | Never. |
 
-A failed test is retried once; a test that passes on the retry is reported as flaky. `@xfail` tests count as passed while the bug exists, and the log of the test step ends with the known-defects summary. Sharding is not enabled (see [Scalability](#scalability)). The `CREDENTIALS_KEY` repository secret must be set, or the tests cannot log in.
+A failed test is retried once; a test that passes on the retry is reported as flaky. `@xfail` tests count as passed while the bug exists, and the HTML report shows their `fail` annotation. Failed tests also appear as annotations through the `github` reporter. Sharding is not enabled (see [Scalability](#scalability)). The `CREDENTIALS_KEY` repository secret must be set, or the tests cannot log in.
 
 ## 7. What I would do with more time
 
@@ -474,6 +474,9 @@ Ordered by value for the effort.
 | 5 | Cross-browser runs | Add Firefox and WebKit projects. | Wait until the suite is stable on Chromium. |
 | 6 | Visual and accessibility checks | Screenshot comparison of the booking form and confirmation, and axe checks on the booking flow. | The story has no visual or accessibility criteria yet (Q-17). |
 | 7 | Flaky-test reporting | Keep a trend of retried tests across CI runs so flakiness is seen before it becomes a problem. | One retry and the flaky label in the report are enough for a suite of this size. |
+| 8 | Contract tests from the OpenAPI schema | Validate every response against the Swagger schema (for example with `ajv`). This would catch the string prices, the reference format, undocumented fields and the undocumented 403 on every endpoint, not only where a test looks. | The Swagger schema is itself wrong in several places (see the documentation table), so the Product Owner must first say what is right. |
+| 9 | A `@smoke` gate on pull requests and a nightly full run | A subset with one happy path per acceptance criterion would give fast feedback on a pull request; the full suite would run every night. This also reduces the load on the shared site. | The full suite is small enough to run on every push today. |
+| 10 | Environment profiles | `.env.staging` and `.env.prod-smoke` chosen by a `TEST_ENV` variable, so the same suite runs against another deployment with one switch. Today `BASE_URL` and `API_BASE_URL` are set one by one. | Only one environment exists for this task. |
 
 ## 8. Assumptions
 

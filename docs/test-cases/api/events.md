@@ -21,12 +21,12 @@ Booking tests are in [bookings.md](bookings.md).
 
 | ID | Test case | Steps | Expected |
 | -- | --------- | ----- | -------- |
-| TC-API-15 | Book a newly created event (`bookNewEvent`) | Create an event with 20 seats → check it is listed → book 2 | Event listed with 20 seats; booking "confirmed"; event then shows 18 seats; booking listed with the right `eventId`. |
-| TC-API-16 | Edit an event that has a booking (`editBookedEvent`) | Create event → book 2 → `PUT /events/{id}` (new title, city, category, price 75) | Events list shows the new values. The booking is still listed, and `GET /bookings`, `GET /bookings/ref/{ref}` and `GET /bookings/{id}` return it with an embedded `event` that shows the old values before the edit and the new values after it. |
-| TC-API-17 | Delete an event that has a booking (`deleteBookedEvent`) | Create event → book 2 → `DELETE /events/{id}` | Before: the booking is returned by `GET /bookings/ref/{ref}` and `GET /bookings/{id}` with the booked event. After the 200: the event is not listed and `GET /events/{id}` returns 404. The booking is also gone (cascade delete): not in `GET /bookings`, 404 on `GET /bookings/ref/{ref}` and on `GET /bookings/{id}`. |
+| TC-API-15 | Book a newly created event (`bookNewEvent`) | Create an event with 20 seats → check it is listed → book 2 | 201 on create, 200 on the list; event listed with 20 seats; booking 201 and "confirmed"; event then shows 18 seats; booking listed with the right `eventId`. |
+| TC-API-16 | Edit an event that has a booking (`editBookedEvent`) | Create event → book 2 → `PUT /events/{id}` (new title, city, category, price 75) | 201 on create and on the booking, 200 on the edit. Events list shows the new values. The booking is still listed, and `GET /bookings`, `GET /bookings/ref/{ref}` and `GET /bookings/{id}` return it with an embedded `event` that shows the old values before the edit and the new values after it. |
+| TC-API-17 | Delete an event that has a booking (`deleteBookedEvent`) | Create event → book 2 → `DELETE /events/{id}` | 201 on create and on the booking. Before: the booking is returned with 200 by `GET /bookings/ref/{ref}` and `GET /bookings/{id}` with the booked event. After the 200: the event is not listed and `GET /events/{id}` returns 404. The booking is also gone (cascade delete): not in `GET /bookings`, 404 on `GET /bookings/ref/{ref}` and on `GET /bookings/{id}`. |
 
 ## Prices: `eventPrices`
 
 | ID | Test case | Steps | Expected |
 | -- | --------- | ----- | -------- |
-| TC-API-23 | Prices are kept exactly | (a) Create an event with price 12.35 → book 3. (b) Create an event with price 0 → book 2. | (a) The API returns the price "12.35" on create and list, and `totalPrice` 37.05; the UI rounds it (defect 2, `decimalPriceEvent`). (b) The booking is "confirmed", `totalPrice` is 0 and the event shows 18 seats. |
+| TC-API-23 | Prices are kept exactly | (a) Create an event with price 12.35 → book 3. (b) Create an event with price 0 → book 2. | (a) 201 on create and on the booking; the API returns the price "12.35" on create and list, and `totalPrice` 37.05; the UI rounds it (defect 2, `decimalPriceEvent`). (b) 201 on create and on the booking; the booking is "confirmed", `totalPrice` is 0 and the event shows 18 seats. |

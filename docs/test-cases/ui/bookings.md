@@ -4,7 +4,7 @@
 | ------------ | --------------------------------------------------------------------- |
 | Story        | US-114 AC1 (create a booking), AC2 (total price), AC3 (booking in My Bookings) |
 | Page         | Home `/` → event details `/events/{id}` → My Bookings                 |
-| Automated in | `tests/ui/booking/bookFeaturedEventTicket.spec.ts` (TC-BK-01..07), `tests/ui/booking/bookMultipleTickets.spec.ts` (TC-BK-08..11) |
+| Automated in | `tests/ui/booking/bookFeaturedEventTicket.spec.ts` (TC-BK-01..07), `tests/ui/booking/bookMultipleTickets.spec.ts` (TC-BK-08..11), `tests/ui/booking/verifyBookingDetails.spec.ts` (TC-BK-12..16) |
 | Test data    | Featured tests book 1 ticket on a shared demo event; multiple-ticket tests book on the first card with enough seats. The `bookings` cleanup fixture deletes every booking through the API afterwards. |
 
 ## Featured event, full flow — `bookFeaturedEventTicket.spec.ts`
@@ -34,6 +34,18 @@ One run each for 2, 4 and 10 tickets (10 is the maximum per booking).
 
 The seat check runs on a shared event, so a mismatch fails with a message pointing at concurrent
 activity, and the single CI retry covers a one-off collision (reported as flaky).
+
+## Booking details page — `verifyBookingDetails.spec.ts`
+
+Books 2 tickets on a featured Concert, then opens the booking with View Details on My Bookings (`/bookings/{id}`).
+
+| ID        | Test case                          | Steps                                                         | Expected |
+| --------- | ---------------------------------- | ------------------------------------------------------------- | -------- |
+| TC-BK-12  | Header                             | My Bookings → View Details on the card                        | The event title, the booking reference and the status "confirmed" are shown. |
+| TC-BK-13  | Blocks                             | Read the page                                                 | The Event Details, Customer Details and Payment Summary blocks are shown. |
+| TC-BK-14  | Customer details                   | Read Customer Details                                         | Name, email and phone are those entered in the booking form. |
+| TC-BK-15  | Payment summary                    | Read Payment Summary                                          | Tickets = 2, price per ticket = the event price, Total Paid = price × 2. |
+| TC-BK-16  | Actions                            | Check "Cancel Booking", then click "← Back to My Bookings"    | Cancel Booking is offered for a confirmed booking; Back returns to the list with the booking still there. |
 
 Form validation, quantity limits, booking the same event twice and anonymous access are in
 [edge-cases.md](edge-cases.md). Booking from the Events page is in [events.md](events.md).

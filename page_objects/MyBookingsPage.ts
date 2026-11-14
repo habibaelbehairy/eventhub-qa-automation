@@ -1,4 +1,4 @@
-import type { Page, Locator} from '@playwright/test';
+import type { Page, Locator, Dialog } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 import { BookingCard } from './components/BookingCard';
@@ -89,7 +89,7 @@ export class MyBookingsPage extends BasePage {
    * a native browser confirm() is accepted, and an in-page modal is confirmed if one appears.
    */
   async clearAllBookings(): Promise<void> {
-    const acceptNativeConfirm = (dialog: import('@playwright/test').Dialog) => dialog.accept();
+    const acceptNativeConfirm = (dialog: Dialog) => dialog.accept();
     this.page.once('dialog', acceptNativeConfirm);
     try {
       await this.clearAllBookingsButton.click();

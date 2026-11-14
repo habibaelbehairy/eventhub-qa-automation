@@ -22,7 +22,12 @@ export default defineConfig({
   workers: Number(process.env.WORKERS ?? DEFAULT_WORKERS),
   retries: 1,
   forbidOnly: env.isCI,
-  reporter: [['list'], ['html', { open: 'never' }], ['./reporters/expectedFailuresReporter.ts']],
+  // In CI the github reporter adds failure annotations to the pull request and the run summary.
+  reporter: [
+    ...(env.isCI ? [['github'] as const] : []),
+    ['list'],
+    ['html', { open: 'never' }],
+  ],
 
   use: {
     ...devices['Desktop Chrome'],

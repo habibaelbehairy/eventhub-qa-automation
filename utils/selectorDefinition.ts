@@ -20,9 +20,9 @@ export function defineSelectors<const T extends SelectorDefinition>(definition: 
   return definition;
 }
 
-type ElementsOf<T> = T extends { elements: infer E } ? E : {};
-type SectionsOf<T> = T extends { sections: infer S } ? S : {};
-type PropsOf<T> = T extends { props: infer P } ? P : {};
+type ElementsOf<T> = T extends { elements: infer E } ? E : Record<never, never>;
+type SectionsOf<T> = T extends { sections: infer S } ? S : Record<never, never>;
+type PropsOf<T> = T extends { props: infer P } ? P : Record<never, never>;
 
 /** A definition turned into Playwright locators. */
 export interface BoundSection<T extends SelectorDefinition> {

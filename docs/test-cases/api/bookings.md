@@ -11,7 +11,7 @@
 Manual steps: use Swagger ("API Docs" in the nav bar) or Postman. Authorize with the token from `POST /auth/login`.
 Note: the Swagger spec declares bearer security only on `/auth/me`, so send the `Authorization: Bearer <token>` header yourself for the other endpoints.
 Clear the pre-filled filters of `GET /events` or the list comes back empty.
-Status codes used in these tests: **201** for every `POST` that creates something (`/events`, `/bookings`), **200** for `GET`, `PUT` and `DELETE`, **400** for invalid input, **401** without a token, **403** and **404** for another user's data (see Q-21 in the README).
+Status codes used in these tests: **201** for every `POST` that creates something (`/events`, `/bookings`), **200** for `GET`, `PUT` and `DELETE`, **400** for invalid input, **401** without a token, **403** and **404** for another user's data.
 
 Related: [cancellation.md](cancellation.md), [edge-cases.md](edge-cases.md) (validation, ownership, same event twice) and [events.md](events.md) (event create, edit, delete, prices).
 

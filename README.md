@@ -9,7 +9,7 @@ Playwright + TypeScript UI and API automation for story **US-114 "Book tickets f
 | **Tests** | 109 in 30 files (58 UI, 51 API; 2 are expected failures, see below), plus 8 setup and teardown steps |
 | **Stack** | Playwright Test, TypeScript (strict), GitHub Actions |
 | **Accounts** | 4 test accounts, one per parallel worker |
-| **Found** | 7 defects and observations (2 with tests), 3 documentation mismatches, 11 other findings, 21 questions for the Product Owner |
+| **Found** | 7 defects and observations (2 with tests), 3 documentation mismatches, 10 other findings, 20 questions for the Product Owner |
 
 **Contents:** [Quick start](#quick-start) · [1. Story review](#1-story-review) · [2. Defects and observations](#2-defects-and-observations) · [3. Test strategy](#3-test-strategy-what-is-covered-and-why) · [4. Framework architecture](#4-framework-architecture) · [5. Key decisions](#5-key-decisions) · [6. Continuous integration](#6-continuous-integration) · [7. What I would do with more time](#7-what-i-would-do-with-more-time) · [8. Assumptions (read first)](#8-assumptions) · [9. How AI was used](#9-how-ai-was-used)
 
@@ -159,7 +159,6 @@ A version the team could test without guessing (every sentence maps to a questio
 | Q-18 | Seat counter | Should the seat count on the event page update right after a booking? **Why it matters:** Tests read seat counts after a reload. |
 | Q-19 | Quantity type | Should the API reject a quantity sent as a string? **Why it matters:** Today `"quantity": "2"` is accepted (defect 7). Without a rule, a client that sends the wrong type works by accident, and a later stricter API would break it. |
 | Q-20 | Clear all bookings | Should the button be hidden or disabled when there are no bookings? **Why it matters:** Today the button is enabled with nothing to clear (defect 6), and the API answers 200 "0 booking(s) cleared". The Product Owner decides whether that is acceptable or an error state. |
-| Q-21 | Access control | Why does the API answer 403 in one case and 404 in another? Reading another user's booking by id or reference gives 403, cancelling it gives 404, and booking an event that another user created gives 404 (as if it did not exist). Should all three answer the same, and which one (404 so the API does not reveal that the resource exists, or 403)? **Why it matters:** The tests assert exactly 403 on the reads and 404 on the cancel and on the foreign event, so they must change if the rule changes. |
 
 ## 2. Defects and observations
 
@@ -206,12 +205,11 @@ While exploring the app I noticed that all the seeded events are dated in the pa
 | O-3 | One user can book the same event more than once. Each booking gets its own reference and takes its own seats. The tests describe the current behaviour and would change if duplicates are forbidden. | `tests/api/edgecases/bookSameEventTwice.spec.ts`, `tests/ui/edgecases/bookSameEventTwice.spec.ts` |
 | O-4 | The API returns `price` and `totalPrice` as strings (for example `"12.35"`). | `tests/api/events/eventPrices.spec.ts` |
 | O-5 | The live site has only 3 events and all are in the past, so booking tests create their own events where they need known data. | Seeded events (`isStatic`) |
-| O-6 | A booking belongs to its owner: another account gets 403 when it reads it, and 404 when it cancels it. | `tests/api/edgecases/bookingOwnership.spec.ts` |
-| O-7 | Reading another user's booking (`GET /bookings/{id}` and `/bookings/ref/{ref}`) answers 403, but cancelling it answers 404. The 403 confirms that the booking exists. | Checked on the live API with two accounts. `bookingOwnership` asserts exactly 403 on the reads and 404 on the cancel. |
-| O-8 | A booking in the UI has a "Check eligibility for refund?" button on its details page, but the story has no refund rule. | Booking details page |
-| O-9 | The event page shows the date without a year ("Monday, 14 December"), the booking details page shows it with the year. | Event page and booking details page |
-| O-10 | Testability: the `id` attributes `event-card` and `book-now-btn` are repeated on every card of the Events page (checked on the live site: 3 cards, 3 equal ids), which is invalid HTML. Locators cannot rely on them, so the tests use `data-testid` and roles. | Events page |
-| O-11 | Testability: the booking confirmation panel has no `data-testid`, so it is found by its "Booking Confirmed" heading and the `.booking-ref` class. A text or style change breaks those locators; one test id would remove the risk. | `data/selectorAlias/EventDetailsPage.ts` |
+| O-6 | A booking belongs to its owner: another account gets 403 when it reads it (which confirms that the booking exists), and 404 when it cancels it. | `tests/api/edgecases/bookingOwnership.spec.ts` |
+| O-7 | A booking in the UI has a "Check eligibility for refund?" button on its details page, but the story has no refund rule. | Booking details page |
+| O-8 | The event page shows the date without a year ("Monday, 14 December"), the booking details page shows it with the year. | Event page and booking details page |
+| O-9 | Testability: the `id` attributes `event-card` and `book-now-btn` are repeated on every card of the Events page (checked on the live site: 3 cards, 3 equal ids), which is invalid HTML. Locators cannot rely on them, so the tests use `data-testid` and roles. | Events page |
+| O-10 | Testability: the booking confirmation panel has no `data-testid`, so it is found by its "Booking Confirmed" heading and the `.booking-ref` class. A text or style change breaks those locators; one test id would remove the risk. | `data/selectorAlias/EventDetailsPage.ts` |
 
 ## 3. Test strategy: what is covered and why
 
@@ -298,7 +296,7 @@ The suite is meant to grow without slowing down or becoming harder to change. Fi
 
 The dependency goes one way only: specs use fixtures, steps and page objects; page objects use selector aliases; nothing below a spec imports a spec. That is why a change stays in one place.
 
-**Locator priority.** A locator is chosen in this order: role and accessible name (`role=link[name="Browse Events →"s]`), then `data-testid` (`[data-testid="booking-card"]`), then visible text, and CSS or XPath only where the page offers nothing better (the booking confirmation panel, see O-11). Every locator is a string in `data/selectorAlias/`, never inline in a page object or a spec, and the repeated `id` attributes on the cards (O-10) are never used.
+**Locator priority.** A locator is chosen in this order: role and accessible name (`role=link[name="Browse Events →"s]`), then `data-testid` (`[data-testid="booking-card"]`), then visible text, and CSS or XPath only where the page offers nothing better (the booking confirmation panel, see O-10). Every locator is a string in `data/selectorAlias/`, never inline in a page object or a spec, and the repeated `id` attributes on the cards (O-9) are never used.
 
 ### How a UI test runs
 

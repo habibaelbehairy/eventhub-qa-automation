@@ -6,10 +6,10 @@ Playwright + TypeScript UI and API automation for story **US-114 "Book tickets f
 
 | | |
 | --- | --- |
-| **Tests** | 101 in 30 files (58 UI, 43 API; 2 are expected failures, see below), plus 8 setup and teardown steps |
+| **Tests** | 109 in 30 files (58 UI, 51 API; 2 are expected failures, see below), plus 8 setup and teardown steps |
 | **Stack** | Playwright Test, TypeScript (strict), GitHub Actions |
 | **Accounts** | 4 test accounts, one per parallel worker |
-| **Found** | 7 defects and observations (2 with tests), 3 documentation mismatches, 9 other findings, 21 questions for the Product Owner |
+| **Found** | 7 defects and observations (2 with tests), 3 documentation mismatches, 11 other findings, 21 questions for the Product Owner |
 
 **Contents:** [Quick start](#quick-start) · [1. Story review](#1-story-review) · [2. Defects and observations](#2-defects-and-observations) · [3. Test strategy](#3-test-strategy-what-is-covered-and-why) · [4. Framework architecture](#4-framework-architecture) · [5. Key decisions](#5-key-decisions) · [6. Continuous integration](#6-continuous-integration) · [7. What I would do with more time](#7-what-i-would-do-with-more-time) · [8. Assumptions (read first)](#8-assumptions) · [9. How AI was used](#9-how-ai-was-used)
 
@@ -84,6 +84,14 @@ Four throwaway test accounts on the public EventHub site (roles `primaryUser`, `
 | Encrypt a new password | `npm run credentials:encrypt -- "MyPassword1."`, then paste the printed value into the JSON. A plain-text password also works and needs no passphrase. |
 | Run in CI | Add the passphrase as the repository secret `CREDENTIALS_KEY`. |
 
+### Credentials for reviewers
+
+The task says to provide the credentials needed to run the tests. The emails are in the repository; the passwords are encrypted in `data/testcredentials.json`. The passphrase for the reviewers is `CREDENTIALS_KEY=xuYoZQnN0y0LRtRqJs7KvjQYvGttVo`. A reviewer needs only that one value, as an environment variable or in a `.env` file, to run everything. Reviewers may also replace the accounts with their own: register on the site and put the email and password (plain text works too) in `data/testcredentials.json`.
+
+A Playwright setup project (`tests/setup/auth.setup.ts`) logs every role in once before the tests. After the `ui` and `api` projects finish, a teardown project (`tests/setup/cleanup.teardown.ts`) deletes bookings and events older than 30 minutes from the test accounts, which are leftovers of aborted runs, and records the count as an annotation in the report. `npm run cleanup` removes everything on the accounts, regardless of age.
+
+In CI ([.github/workflows/playwright.yml](.github/workflows/playwright.yml)) the encrypted passwords are decrypted with the `CREDENTIALS_KEY` secret. The HTML report is uploaded as an artifact.
+
 ### Parallel runs
 
 Each worker runs as its own account (worker 0 = `primaryUser`, worker 1 = `secondaryUser`, ...), so the default is 4 workers, one per account. Use `$env:WORKERS=1` for a serial run. Do not run the `ui` and `api` projects in two terminals at the same time, because they would share the accounts. Tests inside one spec file always run in order. A failed test is retried once; a test that passes on the retry is reported as flaky.
@@ -98,14 +106,6 @@ Two tests document product defects and are marked `test.fail(...)` with the `@xf
 | 3 Fractional seat count (1.5) accepted by the event form | `tests/ui/edgecases/eventFormValidation.spec.ts` (1 test) |
 
 **Tags.** `@ui`, `@api`, `@booking`, `@admin`, `@events`, `@edge`/`@edgecase`, `@negative`, `@security`, `@xfail`, `@seeded` (tests that use only the seeded events, see decision 13). For example `npx playwright test --grep @security`.
-
-### Credentials for reviewers
-
-The task says to provide the credentials needed to run the tests. The emails are in the repository; the passwords are encrypted in `data/testcredentials.json`. The passphrase for the reviewers is `CREDENTIALS_KEY=xuYoZQnN0y0LRtRqJs7KvjQYvGttVo`. A reviewer needs only that one value, as an environment variable or in a `.env` file, to run everything. Reviewers may also replace the accounts with their own: register on the site and put the email and password (plain text works too) in `data/testcredentials.json`.
-
-A Playwright setup project (`tests/setup/auth.setup.ts`) logs every role in once before the tests. After the `ui` and `api` projects finish, a teardown project (`tests/setup/cleanup.teardown.ts`) deletes bookings and events older than 30 minutes from the test accounts, which are leftovers of aborted runs, and records the count as an annotation in the report. `npm run cleanup` removes everything on the accounts, regardless of age.
-
-In CI ([.github/workflows/playwright.yml](.github/workflows/playwright.yml)) the encrypted passwords are decrypted with the `CREDENTIALS_KEY` secret. The HTML report is uploaded as an artifact.
 
 ## 1. Story review
 
@@ -211,7 +211,7 @@ While exploring the app I noticed that all the seeded events are dated in the pa
 | O-8 | A booking in the UI has a "Check eligibility for refund?" button on its details page, but the story has no refund rule. | Booking details page |
 | O-9 | The event page shows the date without a year ("Monday, 14 December"), the booking details page shows it with the year. | Event page and booking details page |
 | O-10 | Testability: the `id` attributes `event-card` and `book-now-btn` are repeated on every card of the Events page (checked on the live site: 3 cards, 3 equal ids), which is invalid HTML. Locators cannot rely on them, so the tests use `data-testid` and roles. | Events page |
-| O-11 | Testability: the booking confirmation panel has no `data-testid`, so it is found by its "Booking Confirmed" heading and the `.booking-ref` class. A text or style change breaks those locators; one test id would remove the risk. | `data/selectorAlias/EventDetailsPage.ts` | None |
+| O-11 | Testability: the booking confirmation panel has no `data-testid`, so it is found by its "Booking Confirmed" heading and the `.booking-ref` class. A text or style change breaks those locators; one test id would remove the risk. | `data/selectorAlias/EventDetailsPage.ts` |
 
 ## 3. Test strategy: what is covered and why
 
@@ -230,7 +230,7 @@ The highest risks in a booking flow are **money** (wrong totals), **inventory** 
 | `edgecases/bookingOwnership` | The owner reads the booking by id, by reference and in the list; another account gets 403 on the reads, 404 on the cancel and does not see it in its list | Access control, run as two different users |
 | `edgecases/bookOthersEvent` | Booking an event created by another account returns 404 and takes no seats | Access control on events |
 | `edgecases/bookSameEventTwice` | Two bookings of one event: different ids and references, seats reduced by both | Documents the current behaviour (Q-11) |
-| `edgecases/createEventValidation` | Missing fields, bad titles, negative price on `POST /events` | Booking tests rely on events made by the suite |
+| `edgecases/createEventValidation` | Missing fields, bad titles, negative price, zero or negative seats, and a missing token (401) on `POST /events` | Booking tests rely on events made by the suite |
 | `events/bookNewEvent`, `editBookedEvent`, `deleteBookedEvent` | A new event can be booked; an edit shows in its bookings; a delete removes its bookings | Data integrity between events and bookings |
 | `events/eventPrices` | Decimal price keeps the exact value and total (12.35, 37.05); a free event books with total 0 | Money. Proves the backend is right when the UI rounds (defect 2) |
 | `events/createPastEvent` | A past event date is refused with 400 | The rule that booking a past event breaks (defect 1) |
@@ -435,7 +435,7 @@ Each decision lists what it costs, because every choice here was a trade.
 | 5 | Own data where the result must be exact, before-and-after checks on shared data | Other people use the same site, so seat counts of seeded events can change during a run. Exact-count tests (2-seat over-booking, 20-seat tests, prices, ownership) create their own event through the API. The rest compare seats before and after, and the failure message points at concurrent activity. | Some tests still depend on shared events. Making every test create its own event is in "What I would do with more time". |
 | 6 | One account per worker | Booking data belongs to an account, so two workers on one account would delete each other's bookings (for example `Clear all bookings`). | Parallelism is capped by the number of accounts (4 now), and CI sharding is blocked until each shard has its own accounts. |
 | 7 | Depth where the risk is | Every AC has UI and API coverage. Extra depth for price calculation, ticket limits, form validation, seat release, over-booking, missing token, and edited or deleted events. | Cosmetic checks and cross-browser runs are left out to keep the suite fast and stable. |
-| 8 | Known product bugs are expected failures (`@xfail`), not skipped | The test keeps its real assertion and is wrapped in `test.fail(...)`. The bug stays visible, the pipeline stays green, and the test turns red by itself when the bug is fixed. A case that cannot be tested reliably is removed and written down as an observation (see [2. Defects and observations](#2-defects-and-observations)). | A green pipeline can hide a known bug from someone who does not read the report; the end-of-run summary and the tag reduce that risk. The "expected" behaviour is my reading, until the Product Owner confirms it. |
+| 8 | Known product bugs are expected failures (`@xfail`), not skipped | The test keeps its real assertion and is wrapped in `test.fail(...)`. The bug stays visible, the pipeline stays green, and the test turns red by itself when the bug is fixed. A case that cannot be tested reliably is removed and written down as an observation (see [2. Defects and observations](#2-defects-and-observations)). | A green pipeline can hide a known bug from someone who does not read the report; the `fail` annotation in the report and the `@xfail` tag (`npm run test:xfail`) reduce that risk. The "expected" behaviour is my reading, until the Product Owner confirms it. |
 | 9 | GitHub Actions on every push, pull request and manual start | Install, type check, run the whole suite, upload the HTML report and traces for 14 days. Passwords are decrypted with the `CREDENTIALS_KEY` secret. One retry separates flaky tests from real failures. See [6. Continuous integration](#6-continuous-integration). | The retry can hide a rare flaky test, so flaky results are reported, not ignored. The pipeline is a single job, so it has no sharding. |
 | 10 | Encrypted passwords in the repository | A public repository should not expose passwords. AES-256-GCM with a key derived from a passphrase means reviewers need one secret instead of four passwords, and rotating a password is a command, not a code change. | Anyone with the passphrase can read every password, and a lost passphrase means re-encrypting. This is protection against casual exposure, not a vault. |
 | 11 | TypeScript strict mode, ESLint and a type check in CI | Typed API responses catch wrong field names and the string-versus-number price at compile time. `npm run verify` runs the type check and ESLint (`typescript-eslint` with `consistent-type-imports`, `no-floating-promises`, and the Playwright plugin) so unused code and missing `await` are found before a run. | Extra type declarations to write and maintain when the API changes. CI runs the type check only; lint is run locally with `npm run verify`. |
